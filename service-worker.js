@@ -7,9 +7,7 @@ const urlsToCache = [
   "DataManager.html",
   "TrainingPath.html",
   "AddLS.html",
-  "SeedData.html",
-  "data/dataset.json",
-  "data/stations.json"
+  "SeedData.html"
 ];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
