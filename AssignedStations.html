@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assigned Stations — Station & Holder</title>
+  <style>
+    :root{--border:#e5e7eb;--body:#111827;--muted:#6b7280;--bg:#f8fafc;--card:#fff;}
+    *{box-sizing:border-box} body{margin:0;background:#fff;color:var(--body);font-family:system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1120px;margin:0 auto;padding:1rem}
+    h1{font-size:1.35rem;margin:0 0 .4rem}
+    .small{font-size:.875rem;color:var(--muted)}
+    .nav{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.5rem 0 1rem}
+    .btn{display:inline-block;padding:.42rem .75rem;border:1px solid var(--border);background:#fff;border-radius:.5rem;cursor:pointer;text-decoration:none;color:#111827}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:.75rem}
+    .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+    .hdr{display:flex;gap:.5rem;align-items:center;padding:.55rem .7rem;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .tag{display:inline-block;border:1px solid var(--border);padding:.16rem .5rem;border-radius:.5rem;background:#f3f4f6;font-weight:700}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;padding:.6rem}
+    .col{border:1px dashed var(--border);border-radius:.6rem;background:#fff;min-height:94px}
+    .col h4{margin:.55rem .6rem .25rem;font-size:.85rem;color:var(--muted)}
+    .zone{display:flex;flex-wrap:wrap;gap:.5rem;padding:.5rem}
+    .zone.drop-hint{outline:2px solid #93c5fd; background:#eff6ff}
+    .card{display:flex;align-items:center;gap:.6rem;border:1px solid var(--border);border-radius:.6rem;background:#fff;padding:.45rem .55rem;cursor:grab}
+    .card img{width:48px;height:48px;border-radius:.55rem;border:1px solid var(--border);object-fit:cover}
+    .nm{font-weight:700}
+    .sub{font-size:.8rem;color:var(--muted)}
+    .login-pill{display:inline-block;margin-left:.35rem;padding:.06rem .35rem;border-radius:.4rem;background:#ecfdf5;color:#065f46;border:1px solid #059669;font-weight:700;font-size:.72rem}
+    .pill-liber{display:inline-block;margin-left:.35rem;padding:.06rem .35rem;border-radius:.4rem;background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe;font-weight:700;font-size:.72rem}
+  
+  .group-hdr{padding:.4rem .6rem;margin:.5rem 0 .25rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  
+  .line-label{font-weight:900;font-size:1.15rem;margin:1.1rem 0 .35rem;color:#065f46;text-align:center;background:#dcfce7;border:1px solid #16a34a;border-radius:.6rem;padding:.35rem .6rem;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .line-sep{border:0;border-top:3px dashed #16a34a;margin:.45rem 0 1rem}
+  .group-section{padding:.6rem .7rem;border:1px solid #e5e7eb;border-radius:.75rem;background:#ffffff;margin-bottom:1rem}
+  .group-hdr{padding:.35rem .5rem;margin:.2rem 0 .5rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  .hdr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .tag{display:inline-block;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.4rem;padding:.12rem .45rem;font-size:.78rem}
+  .code-muted{color:#6b7280;font-weight:500;font-size:.78rem;margin-left:.25rem}
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  .col h4{font-size:.9rem;margin:.1rem 0 .2rem;color:#374151}
+
+  
+  /* Controls: floating sync bar */
+  .sync-bar{position:fixed;top:10px;right:12px;z-index:9999;display:flex;gap:.4rem;align-items:center;background:#ffffffdd;border:1px solid #e5e7eb;border-radius:.6rem;padding:.35rem .5rem;backdrop-filter: blur(2px)}
+  .sync-btn{appearance:none;border:1px solid #16a34a;background:#22c55e;color:#fff;border-radius:.45rem;padding:.28rem .55rem;font-weight:700;cursor:pointer;font-size:.82rem}
+  .sync-btn.secondary{ background:#065f46; border-color:#065f46; }
+  .sync-btn.warn{ background:#ef4444; border-color:#b91c1c; }
+  .sync-btn:hover{filter:brightness(.95)}
+  .sync-btn:active{transform:translateY(1px)}
+  .toast-sync{position:fixed;bottom:14px;right:14px;background:#111827;color:#fff;padding:.5rem .7rem;border-radius:.5rem;opacity:.95;z-index:9999;font-size:.85rem}
+
+</style>
+  <script id="embedded-data" type="application/json">[{"uid": "12061986", "employee_id": "200871664", "user_id": "anwmccul", "first_name": "Andrew", "employee_type": "3PTY", "barcode_id": "12061986", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=anwmccul"}, {"uid": "14044572", "employee_id": "204964561", "user_id": "isianmol", "first_name": "Anmoldeep", "employee_type": "TEMP", "barcode_id": "14044572", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=isianmol"}, {"uid": "13725320", "employee_id": "200651934", "user_id": "nhariski", "first_name": "Josh", "employee_type": "3PTY", "barcode_id": "13725320", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=nhariski"}, {"uid": "12599528", "employee_id": "201267789", "user_id": "deolusun", "first_name": "Sunny", "employee_type": "AMZN", "barcode_id": "12599528", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=deolusun"}, {"uid": "12847518", "employee_id": "200913379", "user_id": "ilithian", "first_name": "Li-Thian", "employee_type": "AMZN", "barcode_id": "12847518", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ilithian"}, {"uid": "13318898", "employee_id": "205370693", "user_id": "hshahanq", "first_name": "Hitesh", "employee_type": "TEMP", "barcode_id": "13318898", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hshahanq"}, {"uid": "15237954", "employee_id": "201905971", "user_id": "syednazx", "first_name": "Syed", "employee_type": "AMZN", "barcode_id": "15237954", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=syednazx"}, {"uid": "14934908", "employee_id": "202597078", "user_id": "espejoml", "first_name": "Liliana", "employee_type": "3PTY", "barcode_id": "14934908", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=espejoml"}, {"uid": "11733874", "employee_id": "200760782", "user_id": "ajaiiaks", "first_name": "AKSHAY", "employee_type": "AMZN", "barcode_id": "11733874", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ajaiiaks"}, {"uid": "13975833", "employee_id": "203169108", "user_id": "siyohana", "first_name": "Simi", "employee_type": "AMZN", "barcode_id": "13975833", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=siyohana"}, {"uid": "12518585", "employee_id": "204047157", "user_id": "muhumade", "first_name": "Aden", "employee_type": "TEMP", "barcode_id": "12518585", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=muhumade"}, {"uid": "11807356", "employee_id": "202309256", "user_id": "edpancha", "first_name": "Dhruvesh", "employee_type": "AMZN", "barcode_id": "11807356", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=edpancha"}, {"uid": "12531093", "employee_id": "204271339", "user_id": "sulelabd", "first_name": "Suleiman", "employee_type": "TEMP", "barcode_id": "12531093", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sulelabd"}, {"uid": "15091753", "employee_id": "200603981", "user_id": "galiarif", "first_name": "ARIF", "employee_type": "AMZN", "barcode_id": "15091753", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=galiarif"}, {"uid": "12208740", "employee_id": "110663833", "user_id": "vmarhire", "first_name": "Hiren", "employee_type": "3PTY", "barcode_id": "12208740", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=vmarhire"}, {"uid": "13357725", "employee_id": "205350339", "user_id": "bhaktthq", "first_name": "Bhakti", "employee_type": "TEMP", "barcode_id": "13357725", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=bhaktthq"}, {"uid": "13719880", "employee_id": "111107095", "user_id": "fazelmoh", "first_name": "Mohammad", "employee_type": "3PTY", "barcode_id": "13719880", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fazelmoh"}, {"uid": "11409779", "employee_id": "200699684", "user_id": "caminpad", "first_name": "Amin", "employee_type": "AMZN", "barcode_id": "11409779", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=caminpad"}, {"uid": "0", "employee_id": "202309121", "user_id": "majiabdo", "first_name": "Majid", "employee_type": "AMZN", "barcode_id": "0", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=majiabdo"}, {"uid": "13340886", "employee_id": "201943431", "user_id": "csajagan", "first_name": "Ganga", "employee_type": "AMZN", "barcode_id": "13340886", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=csajagan"}, {"uid": "12713570", "employee_id": "202165803", "user_id": "yuktav", "first_name": "Yukta", "employee_type": "AMZN", "barcode_id": "12713570", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yuktav"}, {"uid": "14182106", "employee_id": "200880273", "user_id": "chenyuav", "first_name": "Yuanfu", "employee_type": "AMZN", "barcode_id": "14182106", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chenyuav"}, {"uid": "14963345", "employee_id": "205346214", "user_id": "igosmaya", "first_name": "Mayank", "employee_type": "TEMP", "barcode_id": "14963345", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=igosmaya"}, {"uid": "12029241", "employee_id": "202409220", "user_id": "iousmndi", "first_name": "Ousmane", "employee_type": "AMZN", "barcode_id": "12029241", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=iousmndi"}, {"uid": "14280746", "employee_id": "204543429", "user_id": "mayambbe", "first_name": "Bernisse", "employee_type": "3PTY", "barcode_id": "14280746", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mayambbe"}, {"uid": "14423218", "employee_id": "110458662", "user_id": "lebaille", "first_name": "Lee", "employee_type": "3PTY", "barcode_id": "14423218", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lebaille"}, {"uid": "11637131", "employee_id": "202046595", "user_id": "prabhjiy", "first_name": "Prabh", "employee_type": "AMZN", "barcode_id": "11637131", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=prabhjiy"}, {"uid": "12001867", "employee_id": "200646341", "user_id": "rhafaiza", "first_name": "Faiza", "employee_type": "AMZN", "barcode_id": "12001867", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhafaiza"}, {"uid": "14370543", "employee_id": "200754292", "user_id": "loanlle", "first_name": "Loan", "employee_type": "AMZN", "barcode_id": "14370543", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=loanlle"}, {"uid": "12322038", "employee_id": "201913515", "user_id": "kpatesak", "first_name": "Sakshi", "employee_type": "AMZN", "barcode_id": "12322038", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kpatesak"}, {"uid": "13787030", "employee_id": "203920384", "user_id": "fcyriell", "first_name": "Cyrielle", "employee_type": "AMZN", "barcode_id": "13787030", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fcyriell"}, {"uid": "11191786", "employee_id": "200880276", "user_id": "yitjin", "first_name": "Jing", "employee_type": "AMZN", "barcode_id": "11191786", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yitjin"}, {"uid": "216780", "employee_id": "204738173", "user_id": "hamayoq", "first_name": "Mayo", "employee_type": "3PTY", "barcode_id": "216780", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hamayoq"}, {"uid": "12779207", "employee_id": "202343364", "user_id": "kaurykhu", "first_name": "Khushdeep", "employee_type": "AMZN", "barcode_id": "12779207", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kaurykhu"}, {"uid": "13613190", "employee_id": "203898314", "user_id": "mgeeleka", "first_name": "Geele", "employee_type": "AMZN", "barcode_id": "13613190", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mgeeleka"}, {"uid": "13449410", "employee_id": "203227377", "user_id": "pandavva", "first_name": "Vandit", "employee_type": "TEMP", "barcode_id": "13449410", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=pandavva"}, {"uid": "15226098", "employee_id": "200714813", "user_id": "foampasc", "first_name": "PASCAL", "employee_type": "TEMP", "barcode_id": "15226098", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=foampasc"}, {"uid": "11365574", "employee_id": "200547453", "user_id": "cseleren", "first_name": "selam", "employee_type": "AMZN", "barcode_id": "11365574", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=cseleren"}, {"uid": "11160301", "employee_id": "201752232", "user_id": "fmohkhat", "first_name": "khatra", "employee_type": "AMZN", "barcode_id": "11160301", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fmohkhat"}, {"uid": "11475651", "employee_id": "203260894", "user_id": "fthierra", "first_name": "Andrea", "employee_type": "3PTY", "barcode_id": "11475651", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fthierra"}, {"uid": "15299050", "employee_id": "202234844", "user_id": "janbanya", "first_name": "Janos", "employee_type": "3PTY", "barcode_id": "15299050", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=janbanya"}, {"uid": "11621939", "employee_id": "203979863", "user_id": "mitkhush", "first_name": "Miss", "employee_type": "AMZN", "barcode_id": "11621939", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mitkhush"}, {"uid": "12575261", "employee_id": "202729340", "user_id": "joflanca", "first_name": "Joshua", "employee_type": "3PTY", "barcode_id": "12575261", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=joflanca"}, {"uid": "14426402", "employee_id": "200875781", "user_id": "denibris", "first_name": "Denis", "employee_type": "AMZN", "barcode_id": "14426402", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=denibris"}, {"uid": "15123596", "employee_id": "201267722", "user_id": "etchouwa", "first_name": "Evelyne", "employee_type": "AMZN", "barcode_id": "15123596", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=etchouwa"}, {"uid": "12165170", "employee_id": "204271292", "user_id": "mohiqrow", "first_name": "IQRO", "employee_type": "TEMP", "barcode_id": "12165170", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohiqrow"}, {"uid": "13350298", "employee_id": "109366203", "user_id": "gracetet", "first_name": "Teta", "employee_type": "AMZN", "barcode_id": "13350298", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gracetet"}, {"uid": "13466384", "employee_id": "204248224", "user_id": "varmeetk", "first_name": "Meet", "employee_type": "TEMP", "barcode_id": "13466384", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=varmeetk"}, {"uid": "13240071", "employee_id": "205076017", "user_id": "tolljake", "first_name": "Jakeob", "employee_type": "3PTY", "barcode_id": "13240071", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=tolljake"}, {"uid": "13619784", "employee_id": "201943389", "user_id": "brwshaka", "first_name": "Brandon", "employee_type": "AMZN", "barcode_id": "13619784", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=brwshaka"}, {"uid": "15127481", "employee_id": "203847189", "user_id": "lanitcha", "first_name": "Anitaben", "employee_type": "TEMP", "barcode_id": "15127481", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lanitcha"}, {"uid": "13256605", "employee_id": "200536296", "user_id": "ammtheva", "first_name": "Ammany", "employee_type": "AMZN", "barcode_id": "13256605", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ammtheva"}, {"uid": "12222571", "employee_id": "110895730", "user_id": "rhardiza", "first_name": "Hardik", "employee_type": "3PTY", "barcode_id": "12222571", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhardiza"}, {"uid": "13750145", "employee_id": "112736545", "user_id": "insimile", "first_name": "Coletta", "employee_type": "AMZN", "barcode_id": "13750145", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=insimile"}, {"uid": "13225249", "employee_id": "200928118", "user_id": "raminani", "first_name": "Ramina", "employee_type": "AMZN", "barcode_id": "13225249", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=raminani"}, {"uid": "14400621", "employee_id": "204407170", "user_id": "rinrinkm", "first_name": "Rinku", "employee_type": "TEMP", "barcode_id": "14400621", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rinrinkm"}, {"uid": "13400843", "employee_id": "200699770", "user_id": "qosmanha", "first_name": "Hana", "employee_type": "AMZN", "barcode_id": "13400843", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=qosmanha"}, {"uid": "11167276", "employee_id": "113031502", "user_id": "olgpard", "first_name": "Olga", "employee_type": "AMZN", "barcode_id": "11167276", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=olgpard"}, {"uid": "13814605", "employee_id": "203377807", "user_id": "komakauf", "first_name": "Komaljeet", "employee_type": "AMZN", "barcode_id": "13814605", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=komakauf"}, {"uid": "14768465", "employee_id": "203227375", "user_id": "adenijki", "first_name": "kikelomo", "employee_type": "AMZN", "barcode_id": "14768465", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=adenijki"}, {"uid": "11615927", "employee_id": "202120383", "user_id": "arlenkus", "first_name": "Arlette", "employee_type": "AMZN", "barcode_id": "11615927", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=arlenkus"}, {"uid": "12827525", "employee_id": "106751597", "user_id": "labaahme", "first_name": "Modie", "employee_type": "AMZN", "barcode_id": "12827525", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=labaahme"}, {"uid": "11387412", "employee_id": "200351601", "user_id": "zherjane", "first_name": "Janet", "employee_type": "3PTY", "barcode_id": "11387412", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zherjane"}, {"uid": "14909029", "employee_id": "200379341", "user_id": "kaukarmq", "first_name": "Karmveer", "employee_type": "AMZN", "barcode_id": "14909029", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kaukarmq"}, {"uid": "11620625", "employee_id": "200994324", "user_id": "mowcmoha", "first_name": "Mohamed", "employee_type": "AMZN", "barcode_id": "11620625", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mowcmoha"}, {"uid": "13268677", "employee_id": "203865072", "user_id": "mporpaul", "first_name": "MPORE", "employee_type": "AMZN", "barcode_id": "13268677", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mporpaul"}, {"uid": "12253969", "employee_id": "202185338", "user_id": "behboofa", "first_name": "Fatemeh", "employee_type": "AMZN", "barcode_id": "12253969", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=behboofa"}, {"uid": "12178076", "employee_id": "203207701", "user_id": "bzacharw", "first_name": "Zacharie", "employee_type": "3PTY", "barcode_id": "12178076", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=bzacharw"}, {"uid": "14485512", "employee_id": "202942896", "user_id": "pitterja", "first_name": "Jacob", "employee_type": "3PTY", "barcode_id": "14485512", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=pitterja"}, {"uid": "11059138", "employee_id": "204248428", "user_id": "sfattahi", "first_name": "Sepehr", "employee_type": "TEMP", "barcode_id": "11059138", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sfattahi"}, {"uid": "12992267", "employee_id": "200433057", "user_id": "rgraquel", "first_name": "Raquel", "employee_type": "AMZN", "barcode_id": "12992267", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rgraquel"}, {"uid": "14310606", "employee_id": "200969439", "user_id": "malekalt", "first_name": "Tanjida", "employee_type": "AMZN", "barcode_id": "14310606", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=malekalt"}, {"uid": "187866", "employee_id": "104806754", "user_id": "amshukri", "first_name": "Shukri", "employee_type": "AMZN", "barcode_id": "187866", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=amshukri"}, {"uid": "13757003", "employee_id": "200964854", "user_id": "jasprmah", "first_name": "Jaspreet", "employee_type": "AMZN", "barcode_id": "13757003", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=jasprmah"}, {"uid": "13300951", "employee_id": "203141872", "user_id": "rapheawa", "first_name": "Rapheal", "employee_type": "AMZN", "barcode_id": "13300951", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rapheawa"}, {"uid": "72507", "employee_id": "113059376", "user_id": "badgfrit", "first_name": "Badger", "employee_type": "AMZN", "barcode_id": "72507", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=badgfrit"}, {"uid": "14532128", "employee_id": "201363260", "user_id": "piseamus", "first_name": "Seamus", "employee_type": "3PTY", "barcode_id": "14532128", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=piseamus"}, {"uid": "14917641", "employee_id": "200880601", "user_id": "gaikcaka", "first_name": "Akash", "employee_type": "AMZN", "barcode_id": "14917641", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gaikcaka"}, {"uid": "12665587", "employee_id": "203202705", "user_id": "chhdeepp", "first_name": "Deepak", "employee_type": "AMZN", "barcode_id": "12665587", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chhdeepp"}, {"uid": "13476779", "employee_id": "110368418", "user_id": "colailau", "first_name": "Laura", "employee_type": "AMZN", "barcode_id": "13476779", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=colailau"}, {"uid": "13931969", "employee_id": "200413970", "user_id": "ljonatal", "first_name": "Jonathan", "employee_type": "AMZN", "barcode_id": "13931969", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ljonatal"}, {"uid": "13816668", "employee_id": "202431581", "user_id": "iaminimo", "first_name": "Iman", "employee_type": "AMZN", "barcode_id": "13816668", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=iaminimo"}, {"uid": "299120", "employee_id": "200760689", "user_id": "dseykane", "first_name": "Seydi", "employee_type": "TEMP", "barcode_id": "299120", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=dseykane"}, {"uid": "12447106", "employee_id": "204250095", "user_id": "yasppate", "first_name": "Yashkumar", "employee_type": "TEMP", "barcode_id": "12447106", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yasppate"}, {"uid": "13002426", "employee_id": "203579984", "user_id": "shsharig", "first_name": "shahriar", "employee_type": "AMZN", "barcode_id": "13002426", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=shsharig"}, {"uid": "11432321", "employee_id": "204989917", "user_id": "chsumiti", "first_name": "Sumit", "employee_type": "TEMP", "barcode_id": "11432321", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chsumiti"}, {"uid": "11452944", "employee_id": "203202689", "user_id": "sambaffo", "first_name": "Samuel", "employee_type": "AMZN", "barcode_id": "11452944", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sambaffo"}, {"uid": "11650855", "employee_id": "203230130", "user_id": "vadsacfi", "first_name": "Firoz", "employee_type": "AMZN", "barcode_id": "11650855", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=vadsacfi"}, {"uid": "12120271", "employee_id": "200754297", "user_id": "qccartil", "first_name": "Charles", "employee_type": "AMZN", "barcode_id": "12120271", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=qccartil"}, {"uid": "11734397", "employee_id": "113031391", "user_id": "harpsina", "first_name": "Harpreet", "employee_type": "AMZN", "barcode_id": "11734397", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=harpsina"}, {"uid": "11012489", "employee_id": "205403325", "user_id": "sunipsun", "first_name": "SUNIL", "employee_type": "TEMP", "barcode_id": "11012489", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sunipsun"}, {"uid": "12704620", "employee_id": "202343449", "user_id": "dinawcj", "first_name": "CJ", "employee_type": "AMZN", "barcode_id": "12704620", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=dinawcj"}, {"uid": "12206628", "employee_id": "200491897", "user_id": "kahinhfa", "first_name": "Faisal", "employee_type": "AMZN", "barcode_id": "12206628", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kahinhfa"}, {"uid": "13511268", "employee_id": "204950486", "user_id": "zjaypate", "first_name": "Jaykumar", "employee_type": "TEMP", "barcode_id": "13511268", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zjaypate"}, {"uid": "14089286", "employee_id": "204538101", "user_id": "lprchawl", "first_name": "Pranav", "employee_type": "TEMP", "barcode_id": "14089286", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lprchawl"}, {"uid": "12824540", "employee_id": "201191431", "user_id": "rtarakor", "first_name": "Taras", "employee_type": "3PTY", "barcode_id": "12824540", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rtarakor"}, {"uid": "15204453", "employee_id": "204963277", "user_id": "patelsil", "first_name": "Silva", "employee_type": "TEMP", "barcode_id": "15204453", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=patelsil"}, {"uid": "15202238", "employee_id": "201815375", "user_id": "mohampay", "first_name": "Mohamed", "employee_type": "3PTY", "barcode_id": "15202238", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohampay"}, {"uid": "13482792", "employee_id": "105488996", "user_id": "hussnabd", "first_name": "abdi", "employee_type": "AMZN", "barcode_id": "13482792", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hussnabd"}, {"uid": "12361694", "employee_id": "105050327", "user_id": "joycstev", "first_name": "joyce", "employee_type": "AMZN", "barcode_id": "12361694", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=joycstev"}, {"uid": "14399477", "employee_id": "204339585", "user_id": "priirako", "first_name": "Princia", "employee_type": "TEMP", "barcode_id": "14399477", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=priirako"}, {"uid": "12106056", "employee_id": "105050285", "user_id": "kademosu", "first_name": "Kayode", "employee_type": "3PTY", "barcode_id": "12106056", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kademosu"}, {"uid": "14734350", "employee_id": "200928178", "user_id": "karsaidc", "first_name": "said", "employee_type": "AMZN", "barcode_id": "14734350", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=karsaidc"}, {"uid": "12428590", "employee_id": "204485451", "user_id": "nsabimau", "first_name": "Nsabimana", "employee_type": "TEMP", "barcode_id": "12428590", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=nsabimau"}, {"uid": "15050052", "employee_id": "200802981", "user_id": "gamvima", "first_name": "Vimal", "employee_type": "AMZN", "barcode_id": "15050052", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gamvima"}, {"uid": "14458061", "employee_id": "200880363", "user_id": "rhawadir", "first_name": "HAWA", "employee_type": "AMZN", "barcode_id": "14458061", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhawadir"}, {"uid": "14998790", "employee_id": "203306158", "user_id": "jashnkau", "first_name": "Jashandeep", "employee_type": "AMZN", "barcode_id": "14998790", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=jashnkau"}, {"uid": "12624186", "employee_id": "202408949", "user_id": "mohhafha", "first_name": "Afham", "employee_type": "AMZN", "barcode_id": "12624186", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohhafha"}, {"uid": "12938845", "employee_id": "200433044", "user_id": "marinamj", "first_name": "Marina", "employee_type": "AMZN", "barcode_id": "12938845", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=marinamj"}, {"uid": "15171982", "employee_id": "112253688", "user_id": "fasholaa", "first_name": "Ayodele", "employee_type": "3PTY", "barcode_id": "15171982", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fasholaa"}, {"uid": "11665977", "employee_id": "111097472", "user_id": "paavinam", "first_name": "Avinash", "employee_type": "3PTY", "barcode_id": "11665977", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=paavinam"}, {"uid": "12294800", "employee_id": "200913367", "user_id": "farahnav", "first_name": "Navid", "employee_type": "3PTY", "barcode_id": "12294800", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=farahnav"}, {"uid": "14822215", "employee_id": "200913373", "user_id": "htabdiri", "first_name": "Abdirizak", "employee_type": "AMZN", "barcode_id": "14822215", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=htabdiri"}, {"uid": "13629216", "employee_id": "200823011", "user_id": "zkamalho", "first_name": "Karan", "employee_type": "AMZN", "barcode_id": "13629216", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zkamalho"}]</script>
+</head>
+<body>
+  <div class="wrap">
+    <a class="btn" href="index.html">Home</a>
+      <button class="btn" id="btnMoveAllToHold" type="button">Move all to Hold</button>
+      <a class="btn" href="StationSetup.html">← Back to Setup</a>
+      <a class="btn" href="StationDisplay.html" target="_blank">Open Display</a>
+      <a class="btn" href="DataManager.html" target="_blank">Open Data Manager</a>
+      <a class="btn" href="AddLS.html" target="_blank">Add LS</a>
+      <span class="small" id="countInfo"></span>
+    </div>
+
+
+<h1>Assigned Stations — Station & Holder</h1>
+   
+
+    <div id="pairs" class="grid"></div>
+  </div>
+
+<script>
+// Shared keys (match your suite)
+const STORE_KEY='ES_DATASET_V4';
+const STORE_STATIONS='ES_STATIONS_V4';
+const HOLDER_KEY='ES_HOLDER_CACHE_V1';
+
+// Live sync
+var ES_CH=null; try{ ES_CH=new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH=null; }
+
+// Storage helpers
+function readJSON(key, fallback){ try{ var t=localStorage.getItem(key); return t?JSON.parse(t):fallback; }catch(e){ return fallback; } }
+function writeJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} if(ES_CH){ try{ ES_CH.postMessage({type:key, value:val}); }catch(e){} } }
+
+// Dataset & stations
+function getDataset(){
+  var ds = readJSON(STORE_KEY, null);
+  if(!Array.isArray(ds) || ds.length===0){
+    try{
+      ds = JSON.parse(document.getElementById('embedded-data').textContent) || [];
+    }catch(e){ ds = []; }
+    writeJSON(STORE_KEY, ds);
+  }
+  return Array.isArray(ds) ? ds : [];
+}
+function getStations(){ return readJSON(STORE_STATIONS, {}) || {}; }
+function setStation(uid, station){ var m=getStations(); if(station) m[uid]=station; else delete m[uid]; writeJSON(STORE_STATIONS, m); }
+
+// Holder cache
+function getHolder(){ return readJSON(HOLDER_KEY, {}) || {}; }
+function putHolder(map){ writeJSON(HOLDER_KEY, map||{}); }
+function holderAdd(code, uid){ var map=getHolder(); code=String(code||'').toUpperCase(); (map[code]||(map[code]=[])); if(!map[code].includes(uid)) map[code].push(uid); putHolder(map); }
+function holderRemoveEverywhere(uid){ var map=getHolder(); var ch=false; Object.keys(map).forEach(function(k){ var a=map[k]||[]; var i=a.indexOf(uid); if(i>=0){ a.splice(i,1); map[k]=a; ch=true; } }); if(ch) putHolder(map); }
+function holderList(code){ var map=getHolder(); return map[String(code||'').toUpperCase()]||[]; }
+
+// Utils
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, function(m){ return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]); }); }
+function pic(x){ return x.photo_url || x.image || 'https://via.placeholder.com/100x100.png?text=IMG'; }
+function isNumeric(code){ return /^([1-4])-\d+$/.test(code||''); }
+
+// Person card
+function cardHTML(x){
+  var name = x.first_name || x.name || '—';
+  var uid  = x.uid || x.user_id || x.login || '';
+  var emp  = '';
+  var usr = x.user_id || x.uid || '';
+  var login = x.login || x.barcode_id || '';
+  var lib  = x.libershare || '';
+  return '<div class="card" draggable="true" data-uid="'+esc(uid)+'">'+
+           '<img src="'+esc(pic(x))+'" alt="">'+
+           '<div>'+
+             '<div class="nm">'+esc(name)+(usr?(' <span class="login-pill">'+esc(usr)+'</span>'):'')+(lib?(' <span class="pill-liber">'+esc(lib)+'</span>'):'')+'</div>'+
+             
+           '</div>'+
+         '</div>';
+}
+
+// Build assigned map
+function buildAssigned(ds, map){
+  var by={}; ds.forEach(function(x){ var uid=x.uid||x.user_id||x.login||''; if(!uid) return; var st=map[uid]; if(st) (by[st]||(by[st]=[])).push(x); }); return by;
+}
+
+// Drag & drop
+let dragUid=null;
+document.addEventListener('dragstart', function(e){ var c=e.target.closest('.card'); if(!c) return; dragUid=c.getAttribute('data-uid'); try{ e.dataTransfer.setData('text/plain', dragUid); }catch(_e){} });
+function allowDrop(e){ e.preventDefault(); e.currentTarget.classList.add('drop-hint'); }
+function leaveDrop(e){ e.currentTarget.classList.remove('drop-hint'); }
+
+function onDropStation(e, station){
+  e.preventDefault(); e.currentTarget.classList.remove('drop-hint');
+  var uid = dragUid || (e.dataTransfer && e.dataTransfer.getData('text/plain')) || '';
+  if(!uid) return;
+  var by = buildAssigned(getDataset(), getStations());
+  if(isNumeric(station) && by[station] && by[station].length>=1 && !by[station].some(function(p){ return (p.uid||p.user_id||p.login)==uid; })){ alert('Station '+station+' already has someone. Drop into HOLDER to clear first.'); return; }
+  setStation(uid, station);
+  holderRemoveEverywhere(uid);
+  render();
+}
+
+function onDropHolder(e, station){
+  e.preventDefault(); e.currentTarget.classList.remove('drop-hint');
+  var uid = dragUid || (e.dataTransfer && e.dataTransfer.getData('text/plain')) || '';
+  if(!uid) return;
+  setStation(uid, '');
+  holderAdd(station, uid);
+  render();
+}
+
+// Render
+
+
+function render(){
+  var ds = getDataset();
+  var map = getStations();
+  var assigned = buildAssigned(ds, map);
+  var hcMap = getHolder();
+
+  function groupMax(l){ return (String(l)==='4') ? 24 : 28; }
+  function isNum(code){ return /^([1-4])-(\d+)$/.test(code||''); }
+  function isLetter(code){ return !isNum(code); }
+
+  // Letter station naming (configurable via localStorage ES_LETTER_NAMES_V1)
+  function letterName(code){
+    try{
+      var raw = localStorage.getItem('ES_LETTER_NAMES_V1');
+      var m = raw ? JSON.parse(raw) : {};
+      var name = m && m[String(code).toUpperCase()] || null;
+      if(name) return String(name);
+    }catch(e){}
+    return String(code).toUpperCase();
+  }
+
+  var out='';
+
+  for(var lane=1; lane<=4; lane++){
+    var max = groupMax(String(lane));
+    out += '<div class=\"line-label\">Line '+lane+'</div><hr class=\"line-sep\">';
+
+    // Build Odd group
+    (function(){
+      var odd=[]; for(var i=1;i<=max;i+=2){ odd.push(lane+'-'+i); }
+      out += '<div class=\"group-section\">';
+      out += '<div class=\"group-hdr\">Line '+lane+' — Odd <span class=\"group-note\">('+lane+'-1 … '+lane+'-'+(max%2?max:(max-1))+')</span></div>';
+      odd.forEach(function(code){
+        var ppl = (assigned[code]||[]);
+        var left = (ppl.length? ppl.map(cardHTML).join('') : '<div class=\"small\" style=\"padding:.1rem .25rem .5rem .25rem\">No assignee</div>');
+        var holderUIDs = (hcMap[code]||[]);
+        var holderCards = holderUIDs.map(function(uid){
+          var person = ds.find(function(p){ return String(p.uid||p.user_id||p.login||'')===String(uid); });
+          return person? cardHTML(person) : '';
+        }).join('');
+        var right = holderCards || '<div class=\"small\" style=\"padding:.1rem .25rem .5rem .25rem\">Drop here to clear</div>';
+
+        out += '<div class=\"pair\">'+
+                 '<div class=\"hdr\"><span class=\"tag\">Station: '+esc(code)+'</span><span class=\"tag\">Holder: '+esc(code)+' HOLDER</span></div>'+
+                 '<div class=\"cols\">'+
+                   '<div class=\"col\"><h4>Station</h4><div class=\"zone\" data-zone=\"station\" data-code=\"'+esc(code)+'\">'+left+'</div></div>'+
+                   '<div class=\"col\"><h4>Holder</h4><div class=\"zone\" data-zone=\"holder\" data-code=\"'+esc(code)+'\">'+right+'</div></div>'+
+                 '</div>'+
+               '</div>';
+      });
+      out += '</div>';
+    })();
+
+    // Build Even group
+    (function(){
+      var even=[]; for(var i=2;i<=max;i+=2){ even.push(lane+'-'+i); }
+      out += '<div class=\"group-section\">';
+      out += '<div class=\"group-hdr\">Line '+lane+' — Even <span class=\"group-note\">('+lane+'-2 … '+lane+'-'+(max%2?(max-1):max)+')</span></div>';
+      even.forEach(function(code){
+        var ppl = (assigned[code]||[]);
+        var left = (ppl.length? ppl.map(cardHTML).join('') : '<div class=\"small\" style=\"padding:.1rem .25rem .5rem .25rem\">No assignee</div>');
+        var holderUIDs = (hcMap[code]||[]);
+        var holderCards = holderUIDs.map(function(uid){
+          var person = ds.find(function(p){ return String(p.uid||p.user_id||p.login||'')===String(uid); });
+          return person? cardHTML(person) : '';
+        }).join('');
+        var right = holderCards || '<div class=\"small\" style=\"padding:.1rem .25rem .5rem .25rem\">Drop here to clear</div>';
+
+        out += '<div class=\"pair\">'+
+                 '<div class=\"hdr\"><span class=\"tag\">Station: '+esc(code)+'</span><span class=\"tag\">Holder: '+esc(code)+' HOLDER</span></div>'+
+                 '<div class=\"cols\">'+
+                   '<div class=\"col\"><h4>Station</h4><div class=\"zone\" data-zone=\"station\" data-code=\"'+esc(code)+'\">'+left+'</div></div>'+
+                   '<div class=\"col\"><h4>Holder</h4><div class=\"zone\" data-zone=\"holder\" data-code=\"'+esc(code)+'\">'+right+'</div></div>'+
+                 '</div>'+
+               '</div>';
+      });
+      out += '</div>';
+    })();
+  }
+
+  // Indirect Jobs (letters): show *names* instead of letters
+  
+(function(){
+  // Collect ALL letter stations (codes that start with letters), from multiple sources
+  function isLetter(code){ return !/^([1-4])-(\d+)$/.test(code||''); }
+  var letterSet = new Set();
+  function add(c){ if(!c) return; var k=String(c).toUpperCase(); if(isLetter(k)) letterSet.add(k); }
+
+  // From assigned and holder maps
+  Object.keys(assigned||{}).forEach(add);
+  Object.keys(hcMap||{}).forEach(add);
+
+  // From ES_LETTER_NAMES_V1 keys (user-provided names)
+  try{
+    var raw = localStorage.getItem('ES_LETTER_NAMES_V1');
+    if(raw){ var namesMap = JSON.parse(raw)||{}; Object.keys(namesMap).forEach(add); }
+  }catch(e){}
+
+  // From EXTRA_CODES if present
+  try{ if(Array.isArray(EXTRA_CODES)){ EXTRA_CODES.forEach(add); } }catch(e){}
+
+  // Fallback if still empty
+  if(letterSet.size===0){ ['A','B','C','D','E','F'].forEach(add); }
+
+  var INDIRECT_ORDER = ["E2S", "PS", "JC", "JP", "FPY", "IOL", "WS", "STOW", "PICK", "IXD", "SINGLE", "AFE", "DOCK", "SSD", "T-R", "VRC", "PA", "PG", "DPT", "BOXES", "PAX", "OTHER", "AR", "ISS", "ICQA"];
+      var letters = INDIRECT_ORDER.map(function(x){return String(x).toUpperCase();});out += '<div class="line-label">Indirect Jobs</div><hr class="line-sep">';
+  out += '<div class="group-section">';
+  out += '<div class="group-hdr">Indirect Jobs <span class="group-note">(letter stations)</span></div>';
+
+  letters.forEach(function(code){
+    var display = letterName(code); // show user-friendly name if provided; else the code itself
+    var ppl = (assigned[code]||[]);
+    var left = (ppl.length? ppl.map(cardHTML).join('') : '<div class="small" style="padding:.1rem .25rem .5rem .25rem">No assignee</div>');
+    var holderUIDs = (hcMap[code]||[]);
+    var holderCards = holderUIDs.map(function(uid){
+      var person = ds.find(function(p){ return String(p.uid||p.user_id||p.login||'')===String(uid); });
+      return person? cardHTML(person) : '';
+    }).join('');
+    var right = holderCards || '<div class="small" style="padding:.1rem .25rem .5rem .25rem">Drop here to clear</div>';
+
+    out += '<div class="pair">'+
+             '<div class="hdr"><span class="tag">Station: '+esc(display)+'</span><span class="code-muted">['+esc(code)+']</span></div>'+
+             '<div class="cols">'+
+               '<div class="col"><h4>Station</h4><div class="zone" data-zone="station" data-code="'+esc(code)+'">'+left+'</div></div>'+
+               '<div class="col"><h4>Holder</h4><div class="zone" data-zone="holder" data-code="'+esc(code)+'">'+right+'</div></div>'+
+             '</div>'+
+           '</div>';
+  });
+
+  out += '</div>';
+})();
+document.getElementById('pairs').innerHTML = out;
+  var assignedCount = Object.keys(map||{}).length;
+  var info = document.getElementById('countInfo'); if(info) info.textContent = 'Total assigned: '+assignedCount;
+
+  // bind DnD
+  document.querySelectorAll('.zone').forEach(function(z){
+    var st = z.getAttribute('data-code'); var kind = z.getAttribute('data-zone');
+    z.addEventListener('dragover', allowDrop); z.addEventListener('dragleave', leaveDrop);
+    z.addEventListener('drop', function(e){ if(kind==='station') onDropStation(e, st); else onDropHolder(e, st); });
+  });
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function(){
+  render();
+  try{ window.addEventListener('storage', function(e){ if(e.key===STORE_KEY || e.key===STORE_STATIONS || e.key===HOLDER_KEY) render(); }); }catch(e){}
+  if(ES_CH){ ES_CH.onmessage = function(msg){ if(msg && msg.data && (msg.data.type===STORE_KEY || msg.data.type===STORE_STATIONS || msg.data.type===HOLDER_KEY)) render(); }; }
+});
+</script>
+
+<!-- ES_BEST_SYNC_AND_MOVEALL -->
+<script>
+(function(){
+  var STORE_KEY = window.STORE_KEY || 'ES_DATASET_V4';
+  var STORE_STATIONS = window.STORE_STATIONS || 'ES_STATIONS_V4';
+  var HOLDER_KEY = window.HOLDER_KEY || 'ES_HOLDER_CACHE_V1';
+  var SEEN_KEY = 'ES_SHOWN_CODES_V1';
+
+  // 1) Throttled render
+  var needsFrame = false;
+  function scheduleRender(){
+    if(needsFrame) return;
+    needsFrame = true;
+    (window.requestAnimationFrame || function(fn){ return setTimeout(fn, 0); })(function(){
+      needsFrame = false;
+      try{ if(typeof render==='function') render(); }catch(e){}
+    });
+  }
+
+  // 2) Hook writeJSON to auto-sync (if available)
+  try{
+    if(typeof window.writeJSON === 'function' && !window.writeJSON._esPatched){
+      var _w = window.writeJSON;
+      window.writeJSON = function(key, val){
+        try{ _w(key, val); }catch(e){}
+        try{
+          if(key===STORE_KEY || key===STORE_STATIONS || key===HOLDER_KEY){
+            scheduleRender();
+            if(window.ES_CH){ ES_CH.postMessage({type:key, value: val}); }
+          }
+        }catch(_e){}
+      };
+      window.writeJSON._esPatched = true;
+    }
+  }catch(e){}
+
+  // 3) storage + BroadcastChannel
+  try{
+    window.addEventListener('storage', function(e){
+      if(e && (e.key===STORE_KEY || e.key===STORE_STATIONS || e.key===HOLDER_KEY)){
+        scheduleRender();
+      }
+    });
+  }catch(e){}
+  try{
+    if(window.ES_CH){
+      var prev = ES_CH.onmessage;
+      ES_CH.onmessage = function(msg){
+        try{
+          if(msg && msg.data && (msg.data.type===STORE_KEY || msg.data.type===STORE_STATIONS || msg.data.type===HOLDER_KEY)){
+            scheduleRender();
+          }
+        }catch(_e){}
+        if(typeof prev==='function'){ try{ prev(msg); }catch(_e){} }
+      };
+    }
+  }catch(e){}
+
+  // 4) Fallback polling (lightweight, 5s)
+  var lastSig = null;
+  function sig(){
+    function ls(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+    return [ls(STORE_KEY), ls(STORE_STATIONS), ls(HOLDER_KEY)].join('|').length;
+  }
+  setInterval(function(){
+    try{
+      var s = sig();
+      if(s !== lastSig){ lastSig = s; scheduleRender(); }
+    }catch(_e){}
+  }, 5000);
+
+  // 5) Optimized Move All to Hold
+  function moveAllToHoldOptimized(){
+    try{
+      var btn = document.getElementById('btnMoveAllToHold');
+      if(btn){ btn.disabled = true; btn.textContent = 'Moving…'; }
+
+      var stations = (typeof getStations==='function') ? getStations() : {};
+      var holderMap = (typeof getHolder==='function') ? getHolder() : {};
+      var touchedCodes = [];
+      // Build holder map in-memory
+      Object.keys(stations||{}).forEach(function(uid){
+        var code = stations[uid];
+        if(!code) return;
+        var C = String(code).toUpperCase();
+        touchedCodes.push(C);
+        var arr = holderMap[C] || (holderMap[C] = []);
+        if(arr.indexOf(uid) === -1) arr.push(uid);
+      });
+      // Clear stations map in one write
+      if(typeof writeJSON==='function'){
+        writeJSON(STORE_STATIONS, {});
+        writeJSON(HOLDER_KEY, holderMap);
+      }else{
+        try{ localStorage.setItem(STORE_STATIONS, '{}'); }catch(_e){}
+        try{ localStorage.setItem(HOLDER_KEY, JSON.stringify(holderMap)); }catch(_e){}
+        if(window.ES_CH){
+          try{ ES_CH.postMessage({type: STORE_STATIONS, value: {}}); }catch(_e){}
+          try{ ES_CH.postMessage({type: HOLDER_KEY, value: holderMap}); }catch(_e){}
+        }
+      }
+      // Keep seen codes
+      try{
+        var prev = JSON.parse(localStorage.getItem(SEEN_KEY)||'[]');
+        var merged = Array.from(new Set(prev.concat(touchedCodes)));
+        localStorage.setItem(SEEN_KEY, JSON.stringify(merged));
+      }catch(_e){}
+
+      scheduleRender();
+    }catch(e){
+      console && console.error && console.error(e);
+    }finally{
+      var btn2 = document.getElementById('btnMoveAllToHold');
+      if(btn2){ btn2.disabled = false; btn2.textContent = 'Move all to Hold'; }
+    }
+  }
+
+  // 6) Clear Stations (in-page) clears stations + holders + seen
+  function clearStationsLocal(){
+    try{
+      if(typeof writeJSON==='function'){
+        writeJSON(STORE_STATIONS, {});
+        writeJSON(HOLDER_KEY, {});
+      }else{
+        localStorage.setItem(STORE_STATIONS, '{}');
+        localStorage.setItem(HOLDER_KEY, '{}');
+        if(window.ES_CH){
+          try{ ES_CH.postMessage({type: STORE_STATIONS, value: {}}); }catch(_e){}
+          try{ ES_CH.postMessage({type: HOLDER_KEY, value: {}}); }catch(_e){}
+        }
+      }
+      try{ localStorage.removeItem(SEEN_KEY); }catch(_e){}
+      scheduleRender();
+    }catch(e){}
+  }
+
+  // 7) Rewire buttons by cloning (to remove previous listeners reliably)
+  function rebindButtons(){
+    function rewire(id, handler){
+      var el = document.getElementById(id);
+      if(!el) return;
+      var clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el); // removes old listeners
+      clone.addEventListener('click', handler);
+    }
+    rewire('btnMoveAllToHold', moveAllToHoldOptimized);
+    rewire('btnClearStationsLocal', clearStationsLocal);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      rebindButtons();
+    });
+  }else{
+    rebindButtons();
+  }
+})();
+</script>
+
+
+<!-- ES_NEVER_HIDE_CARDS_CENTER -->
+<style>
+  /* Center the grid and cards without altering structure */
+  .grid{ justify-content: center; }
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+
+  .group-hdr{padding:.4rem .6rem;margin:.5rem 0 .25rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  
+  .line-label{font-weight:900;font-size:1.15rem;margin:1.1rem 0 .35rem;color:#065f46;text-align:center;background:#dcfce7;border:1px solid #16a34a;border-radius:.6rem;padding:.35rem .6rem;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .line-sep{border:0;border-top:3px dashed #16a34a;margin:.45rem 0 1rem}
+  .group-section{padding:.6rem .7rem;border:1px solid #e5e7eb;border-radius:.75rem;background:#ffffff;margin-bottom:1rem}
+  .group-hdr{padding:.35rem .5rem;margin:.2rem 0 .5rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  .hdr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .tag{display:inline-block;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.4rem;padding:.12rem .45rem;font-size:.78rem}
+  .code-muted{color:#6b7280;font-weight:500;font-size:.78rem;margin-left:.25rem}
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  .col h4{font-size:.9rem;margin:.1rem 0 .2rem;color:#374151}
+
+  </style>
+<script>
+(function(){
+  var SEEN_KEY = 'ES_SHOWN_CODES_V1';
+  function readSeen(){ try{ return JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'); }catch(e){ return []; } }
+  function writeSeen(arr){ try{ localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(new Set(arr.map(function(x){return String(x||'').toUpperCase();}))))); }catch(e){} }
+  function emptyPairHTML(code){
+    code = String(code||'').toUpperCase();
+    return '<div class="pair">'+
+             '<div class="hdr"><span class="tag">Station: '+code+'</span><span class="tag">Holder: '+code+' HOLDER</span></div>'+
+             '<div class="cols">'+
+               '<div class="col"><h4>Station</h4><div class="zone" data-zone="station" data-code="'+code+'"></div></div>'+
+               '<div class="col"><h4>Holder</h4><div class="zone" data-zone="holder" data-code="'+code+'"></div></div>'+
+             '</div>'+
+           '</div>';
+  }
+  function collectCodes(){
+    return Array.from(document.querySelectorAll('.zone[data-zone="station"][data-code]'))
+      .map(function(z){ return String(z.getAttribute('data-code')||'').toUpperCase(); })
+      .filter(Boolean)
+      .filter(function(v,i,a){ return a.indexOf(v)===i; });
+  }
+  function rebindZones(root){
+    if(typeof allowDrop!=='function' || typeof leaveDrop!=='function' || typeof onDropStation!=='function' || typeof onDropHolder!=='function') return;
+    (root||document).querySelectorAll('.zone').forEach(function(z){
+      if(!z.dataset.esWired){
+        z.addEventListener('dragover', allowDrop);
+        z.addEventListener('dragleave', leaveDrop);
+        var code = z.getAttribute('data-code'); var kind = z.getAttribute('data-zone');
+        z.addEventListener('drop', function(e){ if(kind==='station') onDropStation(e, code); else onDropHolder(e, code); });
+        z.dataset.esWired = '1';
+      }
+    });
+  }
+  var _render = window.render;
+  if(typeof _render === 'function' && !_render._esNeverHide){
+    window.render = function(){
+      _render();
+      try{
+        var cont = document.getElementById('pairs');
+        if(!cont) return;
+        var current = collectCodes();
+        var seen = readSeen();
+        var merged = Array.from(new Set(seen.concat(current))).filter(function(c){ return !/^[A-F]$/.test(String(c||'')); });
+        writeSeen(merged);
+        // Only append missing; never remove any existing pairs
+        var have = new Set(collectCodes());
+        var missing = merged.filter(function(c){ return !have.has(String(c||'').toUpperCase()); });
+        if(missing.length){
+          var frag = document.createElement('div');
+          frag.innerHTML = missing.map(emptyPairHTML).join('');
+          while(frag.firstChild) cont.appendChild(frag.firstChild);
+          rebindZones(cont);
+        }
+      }catch(e){}
+    };
+    window.render._esNeverHide = true;
+  }
+})();
+</script>
+
+
+<!-- ES_CENTRIC_POLISH -->
+<style>
+  /* Center the whole page visually with a subtle, modern look */
+  body{
+    background:
+      radial-gradient(900px 600px at 110% -10%, rgba(124,58,237,.08), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(34,211,238,.08), transparent 60%),
+      #f7f8fb !important;
+  }
+  .wrap{
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding: 1.25rem !important;
+  }
+  /* Center the grid & make cards consistent width for nice centering */
+  #pairs.grid{
+    grid-template-columns: repeat(auto-fit, minmax(360px, 420px)) !important;
+    justify-content: center !important;
+    align-items: start;
+    gap: 1rem !important;
+  }
+  /* Card visual polish */
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+  .pair:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(2, 6, 23, .12);
+  }
+  .hdr{
+    background: #f3f5f9;
+    border-bottom-color: rgba(15, 23, 42, .08) !important;
+  }
+  .tag{
+    background: #eef2ff !important;
+    border-color: rgba(99,102,241,.25) !important;
+    color: #1f256b;
+  }
+  .zone{
+    min-height: 84px;
+    background: #ffffff;
+    border: 1px dashed rgba(15, 23, 42, .14) !important;
+    border-radius: 10px;
+    padding: .35rem;
+  }
+  /* Headline & actions alignment */
+  h1{ text-align:center; margin-top:.2rem; }
+  .nav{ justify-content: center; }
+  .btn{
+    border-radius: .65rem !important;
+    border-color: rgba(15, 23, 42, .12) !important;
+    background: #ffffff !important;
+    box-shadow: 0 6px 16px rgba(2,6,23,.06);
+  }
+  .btn:hover{ transform: translateY(-2px); }
+
+  .group-hdr{padding:.4rem .6rem;margin:.5rem 0 .25rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  
+  .line-label{font-weight:900;font-size:1.15rem;margin:1.1rem 0 .35rem;color:#065f46;text-align:center;background:#dcfce7;border:1px solid #16a34a;border-radius:.6rem;padding:.35rem .6rem;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .line-sep{border:0;border-top:3px dashed #16a34a;margin:.45rem 0 1rem}
+  .group-section{padding:.6rem .7rem;border:1px solid #e5e7eb;border-radius:.75rem;background:#ffffff;margin-bottom:1rem}
+  .group-hdr{padding:.35rem .5rem;margin:.2rem 0 .5rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  .hdr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .tag{display:inline-block;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.4rem;padding:.12rem .45rem;font-size:.78rem}
+  .code-muted{color:#6b7280;font-weight:500;font-size:.78rem;margin-left:.25rem}
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  .col h4{font-size:.9rem;margin:.1rem 0 .2rem;color:#374151}
+
+  </style>
+
+
+<!-- ES_CSL_CENTER_ONLY -->
+<style>
+  /* Center the Clear Stations button wherever it lives */
+  #btnClearStationsLocal{
+    display: block;
+    margin: .5rem auto 1rem; /* center horizontally */
+    text-align: center;
+  }
+  /* If the button is inside the flex .nav, also center it nicely */
+  .nav #btnClearStationsLocal{
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .group-hdr{padding:.4rem .6rem;margin:.5rem 0 .25rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  
+  .line-label{font-weight:900;font-size:1.15rem;margin:1.1rem 0 .35rem;color:#065f46;text-align:center;background:#dcfce7;border:1px solid #16a34a;border-radius:.6rem;padding:.35rem .6rem;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .line-sep{border:0;border-top:3px dashed #16a34a;margin:.45rem 0 1rem}
+  .group-section{padding:.6rem .7rem;border:1px solid #e5e7eb;border-radius:.75rem;background:#ffffff;margin-bottom:1rem}
+  .group-hdr{padding:.35rem .5rem;margin:.2rem 0 .5rem;border-left:4px solid #6366f1;background:#eef2ff;border:1px solid #e5e7eb;border-radius:.5rem;font-weight:700}
+  .group-note{font-weight:400;color:#6b7280;margin-left:.5rem}
+  .hdr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .tag{display:inline-block;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.4rem;padding:.12rem .45rem;font-size:.78rem}
+  .code-muted{color:#6b7280;font-weight:500;font-size:.78rem;margin-left:.25rem}
+  .pair{border:1px solid #e5e7eb;border-radius:.7rem;padding:.55rem;margin-bottom:.7rem;background:#fafafa}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  .col h4{font-size:.9rem;margin:.1rem 0 .2rem;color:#374151}
+
+  </style>
+
+
+<script>
+// ES_FORCE_SEED_IF_EMPTY (AssignedStations)
+(function(){
+  try {
+    var ds = (typeof getDataset==='function') ? getDataset() : [];
+    if(!Array.isArray(ds) || ds.length===0){
+      var embedded = JSON.parse(document.getElementById('embedded-data').textContent||'[]');
+      if(Array.isArray(embedded) && embedded.length){
+        try {
+          if(typeof writeJSON==='function' && typeof STORE_KEY!=='undefined'){ writeJSON(STORE_KEY, embedded); }
+          localStorage.setItem('ES_DATASET_V4', JSON.stringify(embedded));
+        } catch(e){}
+        if(typeof render==='function'){ try{ render(); }catch(e){} }
+      }
+    }
+  } catch(e){}
+})();
+</script>
+
+
+<div class="sync-bar">
+  <button id="syncNowBtn" class="sync-btn" title="Write embedded data to localStorage and refresh">Sync Data</button>
+  <button id="loadLSBtn" class="sync-btn secondary" title="Render from current Local Storage">Load Local</button>
+  <button id="clearLSBtn" class="sync-btn warn" title="Clear ES_DATASET_V4, ES_STATIONS_V4, ES_HOLDER_CACHE_V1">Clear Local</button>
+</div>
+
+
+<script>
+// ES_SYNC_LOAD_CLEAR
+(function(){
+  function read(k){ try{ var t=localStorage.getItem(k); return t? JSON.parse(t): null; }catch(e){ return null; } }
+  function write(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function toast(msg){
+    var t=document.createElement('div'); t.className='toast-sync'; t.textContent=msg;
+    document.body.appendChild(t); setTimeout(function(){ try{ t.remove(); }catch(_){} }, 1800);
+  }
+  function ensureKeys(){
+    window.STORE_KEY = window.STORE_KEY || 'ES_DATASET_V4';
+    window.STORE_STATIONS = window.STORE_STATIONS || 'ES_STATIONS_V4';
+    window.HOLDER_KEY = window.HOLDER_KEY || 'ES_HOLDER_CACHE_V1';
+  }
+  window.esSyncNow = function(){
+    ensureKeys();
+    var tag = document.getElementById('embedded-data');
+    if(!tag){ alert('No embedded-data'); return; }
+    var embedded = JSON.parse(tag.textContent||'[]');
+    if(!Array.isArray(embedded) || !embedded.length){ alert('Embedded data is empty'); return; }
+    write(window.STORE_KEY, embedded);
+    if(typeof render==='function'){ try{ render(); }catch(e){} }
+    toast('Synced '+embedded.length+' records');
+  };
+  window.esLoadLocal = function(){
+    ensureKeys();
+    var ds = read(window.STORE_KEY) || [];
+    var st = read(window.STORE_STATIONS) || {};
+    var hd = read(window.HOLDER_KEY) || {};
+    if(typeof render==='function'){ try{ render(); }catch(e){} }
+    var msg = 'Loaded Local: ds='+(ds.length||0)+', stations='+Object.keys(st).length+', holder='+Object.keys(hd).length;
+    toast(msg);
+  };
+  window.esClearLocal = function(){
+    ensureKeys();
+    try{
+      localStorage.removeItem(window.STORE_KEY);
+      localStorage.removeItem(window.STORE_STATIONS);
+      localStorage.removeItem(window.HOLDER_KEY);
+    }catch(e){}
+    if(typeof render==='function'){ try{ render(); }catch(e){} }
+    toast('Cleared local storage keys');
+  };
+  function bind(){
+    var a=document.getElementById('syncNowBtn');
+    var b=document.getElementById('loadLSBtn');
+    var c=document.getElementById('clearLSBtn');
+    if(a && !a.__esBound){ a.addEventListener('click', esSyncNow); a.__esBound=true; }
+    if(b && !b.__esBound){ b.addEventListener('click', esLoadLocal); b.__esBound=true; }
+    if(c && !c.__esBound){ c.addEventListener('click', esClearLocal); c.__esBound=true; }
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', bind); } else { bind(); }
+})();
+</script>
+
+
+<script>
+// ES_CLEAN_SINGLE_LETTERS
+(function(){
+  var SINGLE = ['A','B','C','D','E','F'];
+  function isSingleLetter(x){ return SINGLE.indexOf(String(x||'').toUpperCase())>=0; }
+  function read(k){ try{ var t=localStorage.getItem(k); return t? JSON.parse(t): null; }catch(e){ return null; } }
+  function write(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  var ST = 'ES_STATIONS_V4', HD='ES_HOLDER_CACHE_V1', SEEN='ES_SHOWN_CODES_V1';
+  // Clean holders
+  try{
+    var h = read(HD) || {};
+    var ch=false;
+    Object.keys(h).forEach(function(code){
+      if(isSingleLetter(code)){ delete h[code]; ch=true; }
+    });
+    if(ch) write(HD, h);
+  }catch(e){}
+  // Clean station assignments pointing to single-letter codes
+  try{
+    var s = read(ST) || {};
+    var changed=false;
+    Object.keys(s).forEach(function(uid){
+      var code = s[uid];
+      if(isSingleLetter(code)){ delete s[uid]; changed=true; }
+    });
+    if(changed) write(ST, s);
+  }catch(e){}
+  // Prevent "seen" re-adding A..F
+  try{
+    var seen = read(SEEN) || [];
+    var filtered = seen.filter(function(c){ return !isSingleLetter(c); });
+    if(filtered.length !== seen.length){ write(SEEN, filtered); }
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
