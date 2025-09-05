@@ -1,87 +1,246 @@
+<!-- =========================
+Training Merge Update — ES_DATASET_V4 (Employee ID join)
+Author: ChatGPT
+Notes:
+- Adds support to upload a Training file (CSV/JSON) and merge it into the shared dataset by Employee ID.
+- Adds a new field per record: `training_list` (Array<string>) — unique, sorted.
+- Updates only the matching row (same Employee ID). Non‑matching rows are untouched.
+- Data Manager: new UI block “Training Merge” (Replace/Append training), live preview, and export buttons.
+- Station Setup & Station Display: read and show a small pill with the # of trainings; hover shows list.
+- Keys used: ES_DATASET_V4 (dataset), ES_STATIONS_V4 (stations), ES_HOLDER_CACHE_V1 (holder cache)
+========================== -->
+
+<!-- ========= DataManager.html (FULL REPLACEMENT) ========= -->
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Data Manager</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Manager — Dataset + Training Merge (v4)</title>
+  <style>
+:root{--border:#e5e7eb;--body:#111827;--muted:#6b7280;--primary:#0d6efd;--light:#f8fafc}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:#111827;font-family:system-ui,Segoe UI,Roboto,Arial}
+.container{max-width:1120px;margin:0 auto;padding:1rem}
+h1{font-size:1.5rem;margin:0 0 1rem}.small{font-size:.875rem;color:var(--muted)}
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.form-control,.form-select{padding:.45rem .7rem;border:1px solid var(--border);border-radius:.375rem;background:#fff;min-height:36px}
+.btn{display:inline-block;padding:.45rem .9rem;border-radius:.375rem;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn-primary{background:#0d6efd;border-color:transparent;color:#fff}
+.btn-danger{background:#ef4444;color:#fff;border-color:transparent}
+.card{background:#fff;border:1px solid var(--border);border-radius:.6rem;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.card-body{padding:.6rem .7rem}
+.filebox{display:flex;align-items:center;gap:.5rem;border:1px dashed var(--border);padding:.4rem .6rem;border-radius:.5rem;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+pre{white-space:pre-wrap;word-break:break-word;border:1px solid var(--border);border-radius:.6rem;padding:.6rem;background:#fff;max-height:380px;overflow:auto}
+.badge{display:inline-block;padding:.18rem .45rem;border-radius:.4rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
+  </style>
 </head>
-<body class="p-4">
-  <h1>📊 Data Manager</h1>
+<body>
+  <div class="container">
+    <h1>Data Manager <span class="small">— shared dataset + training merge</span></h1>
 
-  <h3>Employees (dataset.json)</h3>
-  <table class="table table-bordered" id="empTable"></table>
-  <button class="btn btn-sm btn-success" onclick="addEmployee()">➕ Add Employee</button>
-  <button class="btn btn-sm btn-primary" onclick="exportJSON(dataset,'dataset.json')">💾 Export dataset.json</button>
+    <div class="controls">
+      <div class="filebox">
+        <input id="fileReplace" type="file" accept=".csv,.json">
+        <button class="btn btn-primary" id="btnReplace">Replace dataset</button>
+        <input id="fileAppend" type="file" accept=".csv,.json">
+        <button class="btn" id="btnAppend">Append</button>
+      </div>
+      <button class="btn btn-danger" id="btnClearDataset">Clear Dataset</button>
+      <button class="btn" id="btnClearStations">Clear Stations</button>
+      <button class="btn" id="btnResetAll">Reset ALL to embedded</button>
+      <a class="btn" href="StationSetup.html">Open Setup</a>
+      <a class="btn" href="StationDisplay.html">Open Display</a>
+      <a class="btn" href="index.html">Home</a>
+    </div>
 
-  <hr>
+    <div class="card">
+      <div class="card-body">
+        <strong>Training Merge</strong> <span class="small">— Upload a Training file (CSV/JSON). Expected columns: <code>Employee ID</code> and <code>Training</code> (one row per employee per training). We will aggregate into <code>training_list</code> array and update only matching employees by Employee ID.</span>
+        <div class="controls" style="margin-top:.5rem">
+          <div class="filebox">
+            <input id="fileTraining" type="file" accept=".csv,.json">
+            <button class="btn" id="btnPreviewTraining" type="button">Preview</button>
+            <button class="btn btn-primary" id="btnMergeTraining" type="button">Merge into dataset</button>
+          </div>
+          <label class="small"><input id="joinField" type="text" class="form-control" value="Employee ID" style="width:160px"> Join field</label>
+          <label class="small"><input id="dedupe" type="checkbox" checked> Deduplicate</label>
+        </div>
+        <div class="grid2">
+          <div>
+            <div class="small"><span class="badge">Training preview</span></div>
+            <pre id="trainingPreview">No file loaded.</pre>
+          </div>
+          <div>
+            <div class="small"><span class="badge">Dataset (first 30 rows)</span></div>
+            <pre id="preview"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <h3>Stations (stations.json)</h3>
-  <table class="table table-bordered" id="stTable"></table>
-  <button class="btn btn-sm btn-success" onclick="addStation()">➕ Add Station</button>
-  <button class="btn btn-sm btn-primary" onclick="exportJSON(stations,'stations.json')">💾 Export stations.json</button>
+    <div class="controls">
+      <button class="btn" id="btnExportJSON">Export dataset JSON</button>
+      <button class="btn" id="btnExportCSV">Export dataset CSV</button>
+      <span id="status" class="small"></span>
+    </div>
 
-  <script>
-    let dataset = [];
-    let stations = {};
+    <script id="embedded-data" type="application/json">[]</script>
 
-    async function loadData() {
-      dataset = await fetch("data/dataset.json").then(r => r.json());
-      stations = await fetch("data/stations.json").then(r => r.json());
-      renderTables();
-    }
+    <script>
+// ---- Keys & sync ----
+const STORE_KEY='ES_DATASET_V4';
+const STORE_STATIONS='ES_STATIONS_V4';
+let ES_CH=null; try{ ES_CH = new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH=null; }
+function readJSON(k,f){ try{ const t=localStorage.getItem(k); return t?JSON.parse(t):f; }catch(e){ return f; } }
+function writeJSON(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} if(ES_CH){ try{ ES_CH.postMessage({type:k, value:v}); }catch(e){} } }
+function currentDataset(){ let ds=readJSON(STORE_KEY,null); if(!Array.isArray(ds)||!ds.length){ try{ ds=JSON.parse(document.getElementById('embedded-data').textContent)||[]; }catch(e){ ds=[]; } writeJSON(STORE_KEY, ds); } return ds; }
+function setDataset(arr){ writeJSON(STORE_KEY, Array.isArray(arr)?arr:[]); }
+function clearStations(){ writeJSON(STORE_STATIONS, {}); }
 
-    function renderTables() {
-      let empHtml = "<tr><th>UID</th><th>User ID</th><th>Name</th><th>Employee ID</th><th>Trainings</th><th>Actions</th></tr>";
-      dataset.forEach((e,i)=>{
-        empHtml += `<tr>
-          <td contenteditable onInput="dataset[${i}].uid=this.innerText">${e.uid}</td>
-          <td contenteditable onInput="dataset[${i}].user_id=this.innerText">${e.user_id}</td>
-          <td contenteditable onInput="dataset[${i}].first_name=this.innerText">${e.first_name}</td>
-          <td contenteditable onInput="dataset[${i}].employee_id=this.innerText">${e.employee_id}</td>
-          <td contenteditable onInput="dataset[${i}].training_list=this.innerText.split(',')">${e.training_list.join(',')}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="delEmployee(${i})">🗑</button></td>
-        </tr>`;
-      });
-      document.getElementById("empTable").innerHTML = empHtml;
+// ---- CSV helper ----
+function parseCSV(text){
+  const lines = String(text||'').replace(/\uFEFF/g,'').split(/\r?\n/).filter(x=>x.trim().length>0);
+  if(!lines.length) return [];
+  const hdr = lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(row=>{ const cells = row.split(','); const obj={}; for(let i=0;i<hdr.length;i++){ obj[hdr[i]] = (cells[i]||'').trim(); } return obj; });
+}
 
-      let stHtml = "<tr><th>UID</th><th>Station</th><th>Actions</th></tr>";
-      Object.keys(stations).forEach((uid)=>{
-        stHtml += `<tr>
-          <td>${uid}</td>
-          <td contenteditable onInput="stations['${uid}']=this.innerText">${stations[uid]}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="delStation('${uid}')">🗑</button></td>
-        </tr>`;
-      });
-      document.getElementById("stTable").innerHTML = stHtml;
-    }
+// ---- Preview dataset ----
+function refreshPreview(){ const ds=currentDataset().slice(0,30); document.getElementById('preview').textContent = JSON.stringify(ds,null,2); }
 
-    function addEmployee() {
-      dataset.push({uid:"U"+(dataset.length+1), user_id:"", first_name:"", employee_id:"", training_list:[]});
-      renderTables();
-    }
-    function delEmployee(i) {
-      dataset.splice(i,1);
-      renderTables();
-    }
-    function addStation() {
-      stations["U"+(Object.keys(stations).length+1)]="";
-      renderTables();
-    }
-    function delStation(uid) {
-      delete stations[uid];
-      renderTables();
-    }
+// ---- Training file -> map(EmployeeID => Array<Training>) ----
+function toTrainingMap(rows, idKey, trainKey){
+  const idCol = idKey || 'Employee ID';
+  const trCol = trainKey || 'Training';
+  const map = {};
+  (rows||[]).forEach(r=>{
+    const id = String(r[idCol]||'').trim();
+    const t  = String(r[trCol]||'').trim();
+    if(!id || !t) return;
+    const arr = map[id] || (map[id] = []);
+    if(arr.indexOf(t)===-1) arr.push(t);
+  });
+  // sort for stability
+  Object.keys(map).forEach(k=> map[k].sort((a,b)=> a.localeCompare(b)) );
+  return map;
+}
 
-    function exportJSON(obj, filename) {
-      const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-    }
+function mergeTrainingIntoDataset(ds, tmap, joinKey, dedupe){
+  const key = joinKey || 'Employee ID';
+  const seenIDs = new Set(Object.keys(tmap));
+  let updated=0;
+  for(let i=0;i<ds.length;i++){
+    const id = String(ds[i].employee_id || ds[i][key] || '').trim();
+    if(!id) continue;
+    if(!seenIDs.has(id)) continue;
+    const list = tmap[id] || [];
+    if(!Array.isArray(ds[i].training_list)) ds[i].training_list = [];
+    let merged = ds[i].training_list.concat(list);
+    if(dedupe){ merged = Array.from(new Set(merged)); }
+    merged.sort((a,b)=> a.localeCompare(b));
+    ds[i].training_list = merged; // write back only this line
+    updated++;
+  }
+  return {ds, updated};
+}
 
-    loadData();
-  </script>
+// ---- Wiring ----
+function fileToRows(file){ return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onerror=()=>reject(reader.error); reader.onload=()=>{ const text=String(reader.result||''); if(/\.json$/i.test(file.name)){ try{ const arr=JSON.parse(text); return resolve(Array.isArray(arr)?arr:[]);}catch(e){ return reject(e);} } else { return resolve(parseCSV(text)); } }; reader.readAsText(file); }); }
+
+// dataset Replace / Append (existing behavior preserved)
+document.getElementById('btnReplace').addEventListener('click', async ()=>{
+  const inp=document.getElementById('fileReplace'); const f=inp.files && inp.files[0]; if(!f) return alert('Choose a file');
+  try{
+    const rows=await fileToRows(f);
+    const ds=Array.isArray(rows)?rows:[];
+    setDataset(ds);
+    document.getElementById('status').textContent = 'Dataset replaced: '+ds.length+' rows';
+    refreshPreview();
+  }catch(e){ alert('Failed to load file: '+e.message); }
+});
+
+document.getElementById('btnAppend').addEventListener('click', async ()=>{
+  const inp=document.getElementById('fileAppend'); const f=inp.files && inp.files[0]; if(!f) return alert('Choose a file');
+  try{
+    const rows=await fileToRows(f);
+    const base=currentDataset();
+    // unique by uid if present; else by user_id; else push
+    const map={}; base.forEach(r=>{ const k=String(r.uid||r.user_id||Math.random()).toLowerCase(); map[k]=r; });
+    rows.forEach(r=>{ const k=String(r.uid||r.user_id||Math.random()).toLowerCase(); map[k]=Object.assign({}, map[k]||{}, r); });
+    const merged=Object.values(map);
+    setDataset(merged);
+    document.getElementById('status').textContent = 'Appended. New size: '+merged.length;
+    refreshPreview();
+  }catch(e){ alert('Failed to append: '+e.message); }
+});
+
+// Reset / clear
+ document.getElementById('btnResetAll').addEventListener('click', ()=>{
+   try{ const em=JSON.parse(document.getElementById('embedded-data').textContent||'[]')||[]; setDataset(em); clearStations(); document.getElementById('status').textContent='Reset to embedded.'; refreshPreview(); }catch(e){ alert('No embedded data'); }
+ });
+ document.getElementById('btnClearDataset').addEventListener('click', ()=>{ setDataset([]); document.getElementById('status').textContent='Dataset cleared.'; refreshPreview(); });
+ document.getElementById('btnClearStations').addEventListener('click', ()=>{ clearStations(); document.getElementById('status').textContent='Stations cleared.'; });
+
+// Training: preview & merge
+let _trainingRows=[];
+document.getElementById('btnPreviewTraining').addEventListener('click', async ()=>{
+  const f=(document.getElementById('fileTraining').files||[])[0]; if(!f) return alert('Choose a training file');
+  try{
+    _trainingRows = await fileToRows(f);
+    const key = document.getElementById('joinField').value.trim()||'Employee ID';
+    const tmap = toTrainingMap(_trainingRows, key, 'Training');
+    const sample = Object.keys(tmap).slice(0,10).reduce((acc,k)=>{ acc[k]=tmap[k]; return acc; },{});
+    document.getElementById('trainingPreview').textContent = JSON.stringify({rows:_trainingRows.length, sample}, null, 2);
+  }catch(e){ alert('Failed to read training file: '+e.message); }
+});
+
+document.getElementById('btnMergeTraining').addEventListener('click', ()=>{
+  if(!_trainingRows.length) return alert('Load a training file first (Preview).');
+  const key = document.getElementById('joinField').value.trim()||'Employee ID';
+  const dedupe = document.getElementById('dedupe').checked;
+  const tmap = toTrainingMap(_trainingRows, key, 'Training');
+  const ds = currentDataset();
+  const res = mergeTrainingIntoDataset(ds, tmap, key, dedupe);
+  setDataset(res.ds);
+  document.getElementById('status').textContent = 'Merged training into '+res.updated+' matching rows.';
+  refreshPreview();
+});
+
+// Export helpers
+function download(name, text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 5000); }
+function toCSV(arr){ if(!Array.isArray(arr)||!arr.length) return ''; const keys=Array.from(new Set(arr.flatMap(o=>Object.keys(o)))); const esc=s=>('"'+String(s).replace(/"/g,'""')+'"'); const head=keys.join(','); const rows=arr.map(o=> keys.map(k=> esc(o[k]!==undefined?o[k]:"" )).join(',')); return [head].concat(rows).join('\n'); }
+
+document.getElementById('btnExportJSON').addEventListener('click', ()=>{ download('dataset.json', JSON.stringify(currentDataset(), null, 2)); });
+document.getElementById('btnExportCSV').addEventListener('click', ()=>{ download('dataset.csv', toCSV(currentDataset())); });
+
+// Init
+refreshPreview();
+    </script>
+  </div>
 </body>
 </html>
+
+
+<!-- ========= StationSetup.html (PATCH: show training badge on cards) ========= -->
+<script>
+// Drop this near other helpers in StationSetup.html
+function trainingBadgeHTML(it){
+  const arr = Array.isArray(it.training_list)? it.training_list: [];
+  if(arr.length===0) return '';
+  const tip = arr.join(', ');
+  return '<span class="pill-liber" title="'+tip.replace(/"/g,'&quot;')+'">TR: '+arr.length+'</span>';
+}
+// When rendering employee chips/cards, append trainingBadgeHTML(it)
+// Example in existing code where you render an employee in a slot:
+// '<img ...><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'') + trainingBadgeHTML(it)
+</script>
+
+<!-- ========= StationDisplay.html (PATCH: show training badge in list items) ========= -->
+<script>
+// Add beside name in Display too
+function trBadge(item){ var a = Array.isArray(item.training_list)? item.training_list: []; if(!a.length) return ''; var tip=a.join(', '); return '<span class="pill-liber" title="'+tip.replace(/"/g,'&quot;')+'">TR: '+a.length+'</span>'; }
+// In StationDisplay render where each item is printed, append trBadge(x) after the name.
+</script>
+
+<!-- ========= AddLS.html (No change required) ========= -->
+<!-- LS additions remain compatible; new field `training_list` is optional and untouched when adding LS. -->

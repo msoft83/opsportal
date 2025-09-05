@@ -1,25 +1,226 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" class="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TrainingPath</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="p-4">
-  <h1>TrainingPath</h1>
-  <div id="content"></div>
-  <script>
-    async function fetchData() {
-      const [ds, st] = await Promise.all([
-        fetch("data/dataset.json").then(r => r.json()),
-        fetch("data/stations.json").then(r => r.json())
-      ]);
-      document.getElementById("content").innerText = JSON.stringify({dataset:ds, stations:st}, null, 2);
+  <title>Training Path</title>
+  <style>
+    /* الوضع الفاتح */
+    :root.light {
+      --bg:#f8fafc; --panel:#ffffff; --text:#1e293b; --muted:#64748b;
+      --border:#cbd5e1; --row:#ffffff; --row2:#f1f5f9;
+      --accent:#0284c7; --accent2:#7c3aed; --ok:#16a34a; --okbg:#dcfce7;
     }
-    fetchData();
-  </script>
+    /* الوضع الداكن */
+    :root.dark {
+      --bg:#0b1020; --panel:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+      --border:rgba(255,255,255,.15); --row:#0b1326; --row2:#0d172f;
+      --accent:#22d3ee; --accent2:#7c3aed; --ok:#16a34a; --okbg:#ecfdf5;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    h1{margin:0 0 8px;font-size:1.4rem;font-weight:900;letter-spacing:.2px;display:flex;align-items:center;justify-content:space-between}
+    .sub{color:var(--muted);font-size:.9rem;margin-bottom:10px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border-bottom:1px solid var(--border)}
+    .form-control,.form-select,.btn{min-height:38px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text);padding:.45rem .7rem}
+    .form-control::placeholder{color:var(--muted)}
+    .btn{cursor:pointer;font-weight:700}
+    .btn-clear{background:var(--row2)}
+    .badge-present{display:inline-block;padding:.16rem .44rem;border-radius:.5rem;background:var(--okbg);color:var(--ok);font-weight:800;border:1.5px solid var(--ok);font-size:.78rem;margin-left:.35rem}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{text-align:left;font-size:.85rem;color:var(--muted);padding:10px 12px;background:var(--row2);position:sticky;top:0;z-index:1}
+    tbody tr{background:var(--row)}
+    tbody tr:nth-child(even){background:var(--row2)}
+    tbody td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:middle}
+    .avatar{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--border);background:var(--row2)}
+    .name{font-weight:800;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+    .login-pill{display:inline-block;padding:.18rem .4rem;border-radius:.4rem;background:var(--okbg);color:var(--ok);border:1.5px solid var(--ok);font-weight:800;font-size:.8rem}
+    .tags{display:flex;flex-wrap:wrap;gap:.3rem;max-width:440px}
+    .tag{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .4rem;border-radius:.45rem;font-size:.75rem;border:1px solid var(--border);background:var(--row2)}
+    .count{padding:10px 12px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--border)}
+    .theme-toggle{cursor:pointer;font-size:1.2rem;padding:6px 10px;border-radius:8px;background:var(--row2)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      Training Path
+      <span class="theme-toggle" id="themeToggle">🌙</span>
+    </h1>
+    <div class="sub">All employees with filters. Assigned users show a <span class="badge-present">Present</span> badge.</div>
+
+    <div class="panel">
+      <div class="controls sticky-controls">
+        <input id="searchInput" class="form-control" placeholder="Search by name, user ID, or employee ID">
+        <label class="muted">Training:
+          <select id="trainingSel" class="form-select"></select>
+        </label>
+        <label class="muted">Status:
+          <select id="presentSel" class="form-select">
+            <option value="__ALL__">All</option>
+            <option value="PRESENT">Present only</option>
+            <option value="ABSENT">Absent only</option>
+          </select>
+        </label>
+        <button class="btn btn-clear" id="clearBtn" type="button">Clear</button>
+        <span class="muted" id="countInfo"></span>
+      </div>
+
+      <div style="max-height:70vh;overflow:auto">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th style="width:56px">Photo</th>
+              <th>Name</th>
+              <th class="nowrap">User</th>
+              <th class="nowrap">Emp. ID</th>
+              <th class="nowrap">Type</th>
+              <th>Trainings</th>
+              <th class="nowrap">Station</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="count" id="footCount">—</div>
+    </div>
+
+    <script id="embedded-data" type="application/json">[]</script>
+
+    <script>
+      const STORE_KEY='ES_DATASET_V4';
+      const STORE_STATIONS='ES_STATIONS_V4';
+      let ES_CH=null; try{ ES_CH=new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH=null; }
+
+      function readJSON(key, fallback){ try{ const t=localStorage.getItem(key); return t?JSON.parse(t):fallback; }catch(e){ return fallback; } }
+      function writeJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); if(ES_CH) ES_CH.postMessage({type:key, value:val}); }catch(e){} }
+
+      function seedFromEmbedded(){
+        try{
+          const raw = document.getElementById('embedded-data').textContent || '[]';
+          const arr = JSON.parse(raw);
+          if(Array.isArray(arr) && arr.length){ writeJSON(STORE_KEY, arr); return arr; }
+        }catch(e){}
+        return [];
+      }
+
+      function getDataset(){ let ds = readJSON(STORE_KEY, null); if(!Array.isArray(ds)||!ds.length) ds = seedFromEmbedded(); return ds||[]; }
+      function getStations(){ const m = readJSON(STORE_STATIONS, null); return (m && typeof m==='object') ? m : {}; }
+
+      function esc(s){ s=String(s||''); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+      function ph(seed){ return "https://picsum.photos/seed/"+encodeURIComponent(seed)+"/220/220"; }
+      function imgFromItem(x){ const seed = x.barcode_id || x.employee_id || x.user_id || x.first_name || 'x'; if(x.photo_url && /^https?:\/\//.test(x.photo_url)) return x.photo_url; return ph(seed); }
+
+      function colorFor(txt){
+        txt = String(txt||'').toLowerCase(); let h=0; for(let i=0;i<txt.length;i++){ h=(h*31+txt.charCodeAt(i))%360; }
+        const bg='hsl('+h+' 50% 22%)', bd='hsl('+h+' 70% 60%)', fg='hsl('+h+' 80% 92%)';
+        return {bg, bd, fg};
+      }
+      function tagNode(name){
+        const c = colorFor(name);
+        const span = document.createElement('span');
+        span.className='tag';
+        span.style.background=c.bg; span.style.borderColor=c.bd; span.style.color=c.fg;
+        span.textContent = name;
+        return span;
+      }
+
+      function collectTrainings(ds){
+        const set = new Set();
+        for(const r of ds){ (Array.isArray(r.training_list)?r.training_list:[]).forEach(t=>set.add(String(t))); }
+        return Array.from(set).sort((a,b)=>a.localeCompare(b));
+      }
+
+      function render(){
+        const ds = getDataset();
+        const st = getStations();
+
+        const sel = document.getElementById('trainingSel');
+        if(!sel.dataset.ready){
+          const opts = ['__ALL__', ...collectTrainings(ds)];
+          sel.innerHTML = opts.map(v=>'<option value="'+v+'">'+(v==='__ALL__'?'All trainings':esc(v))+'</option>').join('');
+          sel.dataset.ready = '1';
+        }
+
+        const q = document.getElementById('searchInput').value.trim().toLowerCase();
+        const tFilter = document.getElementById('trainingSel').value;
+        const pFilter = document.getElementById('presentSel').value;
+
+        const body = document.getElementById('tbody');
+        body.innerHTML = '';
+        let shown = 0, assignedCount = 0;
+
+        for(const r of ds){
+          const name = String(r.first_name||'').trim();
+          const uid = String(r.uid||''); const user = String(r.user_id||'');
+          const emp = String(r.employee_id||''); const type = String(r.employee_type||'');
+          const tags = Array.isArray(r.training_list)? r.training_list : [];
+
+          const hay = (name+' '+user+' '+emp).toLowerCase();
+          if(q && hay.indexOf(q)===-1) continue;
+          if(tFilter && tFilter!=='__ALL__' && !tags.includes(tFilter)) continue;
+
+          const isAssigned = !!st[uid];
+          if(pFilter === 'PRESENT' && !isAssigned) continue;
+          if(pFilter === 'ABSENT' && isAssigned) continue;
+          if(isAssigned) assignedCount++;
+
+          const tr = document.createElement('tr');
+
+          const tdPh = document.createElement('td');
+          const img = document.createElement('img'); img.className='avatar'; img.loading='lazy'; img.src=imgFromItem(r); tdPh.appendChild(img); tr.appendChild(tdPh);
+
+          const tdNm = document.createElement('td');
+          const nm = document.createElement('div'); nm.className='name'; nm.textContent = name || '—';
+          if(isAssigned){ const b=document.createElement('span'); b.className='badge-present'; b.textContent='Present'; nm.appendChild(b); }
+          tdNm.appendChild(nm); tr.appendChild(tdNm);
+
+          const tdUser = document.createElement('td'); const pill=document.createElement('span'); pill.className='login-pill'; pill.textContent=user||'—'; tdUser.appendChild(pill); tr.appendChild(tdUser);
+          const tdEmp = document.createElement('td'); tdEmp.textContent = emp || '—'; tr.appendChild(tdEmp);
+          const tdType = document.createElement('td'); tdType.textContent = type || '—'; tr.appendChild(tdType);
+
+          const tdTags = document.createElement('td'); const wrap=document.createElement('div'); wrap.className='tags'; tags.forEach(t=>wrap.appendChild(tagNode(String(t)))); tdTags.appendChild(wrap); tr.appendChild(tdTags);
+          const tdSt = document.createElement('td'); tdSt.textContent = st[uid] ? String(st[uid]) : ''; tr.appendChild(tdSt);
+
+          body.appendChild(tr);
+          shown++;
+        }
+
+        document.getElementById('countInfo').textContent = shown + ' shown · ' + assignedCount + ' present';
+        document.getElementById('footCount').textContent = shown + ' rows';
+      }
+
+      document.getElementById('searchInput').addEventListener('input', render);
+      document.getElementById('trainingSel').addEventListener('change', render);
+      document.getElementById('presentSel').addEventListener('change', render);
+      document.getElementById('clearBtn').addEventListener('click', function(){
+        document.getElementById('searchInput').value='';
+        document.getElementById('trainingSel').value='__ALL__';
+        document.getElementById('presentSel').value='__ALL__';
+        render();
+      });
+
+      window.addEventListener('storage', function(e){ if(e && (e.key===STORE_KEY || e.key===STORE_STATIONS)) render(); });
+      if(ES_CH) ES_CH.onmessage = function(ev){ if(ev && ev.data && (ev.data.type===STORE_KEY || ev.data.type===STORE_STATIONS)) render(); };
+
+      document.addEventListener('DOMContentLoaded', function(){ render(); });
+
+      // Theme toggle
+      const toggleBtn = document.getElementById('themeToggle');
+      toggleBtn.addEventListener('click', () => {
+        const root = document.documentElement;
+        if(root.classList.contains('light')){
+          root.classList.remove('light'); root.classList.add('dark');
+          toggleBtn.textContent = "☀️";
+        } else {
+          root.classList.remove('dark'); root.classList.add('light');
+          toggleBtn.textContent = "🌙";
+        }
+      });
+    </script>
+  </div>
 </body>
 </html>

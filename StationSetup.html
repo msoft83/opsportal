@@ -1,25 +1,2581 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StationSetup</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Station Setup — Q-Mapping + Photo column</title>
+  
+<style>
+:root{--border:#e5e7eb;--body:#111827;--muted:#6b7280;--primary:#0d6efd;--light:#f8fafc;}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:#111827;font-family:system-ui,Segoe UI,Roboto,Arial}
+.container{max-width:1120px;margin:0 auto;padding:1rem}
+h1{font-size:1.5rem;margin:0 0 .75rem}
+.small{font-size:.875rem;color:#6b7280}
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.controls.sticky{position:sticky;top:0;z-index:1000;background:#fff;padding:.5rem .5rem;border-bottom:1px solid var(--border)}
+.form-control,.form-select{padding:.45rem .7rem;border:1px solid var(--border);border-radius:.375rem;background:#fff;min-height:36px}
+.btn{display:inline-block;padding:.45rem .9rem;border-radius:.375rem;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn-primary{background:#0d6efd;border-color:transparent;color:#fff}
+.btn-danger{background:#ef4444;border-color:transparent;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem}
+.card{background:#fff;border:1px solid var(--border);border-radius:.6rem;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.card-body{padding:.6rem .7rem}
+.row{display:flex;align-items:center;gap:.6rem}
+.thumb-sm{width:42px;height:42px;border-radius:6px;object-fit:cover;background:#f3f4f6;border:1px solid var(--border)}
+.title{font-weight:600}
+.meta{font-size:.8rem;color:#6b7280}
+.inline{display:flex;align-items:center;gap:.4rem;margin-top:.4rem}
+.badge{display:inline-block;padding:.2rem .45rem;border-radius:.35rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
+.section{margin:.75rem 0 1rem}
+.list{border:1px solid var(--border);border-radius:.6rem;overflow:hidden}
+.letter{font-size:1.15rem;font-weight:700;margin:.6rem 0 .25rem;border-bottom:1px solid var(--border);padding-bottom:.1rem;position:sticky;top:48px;background:#fff;z-index:10}
+.item{display:flex;justify-content:space-between;align-items:center;padding:.55rem .75rem;border-top:1px solid var(--border)}
+.item:first-child{border-top:none}
+.left{display:flex;align-items:center;gap:.6rem}
+.thumb-md{width:86px;height:86px;border-radius:10px;object-fit:cover;background:#f3f4f6;border:1px solid var(--border)}
+.filebox{display:flex;align-items:center;gap:.5rem;border:1px dashed var(--border);padding:.4rem .6rem;border-radius:.5rem;background:#fff}
+
+/* Unused stations panel */
+.unused-panel{border:1px solid var(--border);border-radius:.6rem;padding:.6rem .7rem;background:#fff;width:100%}
+.unused-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem}
+.unused-list{display:flex;flex-wrap:wrap;gap:.35rem;max-height:180px;overflow:auto;border-top:1px dashed var(--border);padding-top:.4rem}
+.chip{display:inline-block;padding:.18rem .45rem;border:1px solid var(--border);border-radius:.5rem;font-size:.8rem;background:#f9fafb}
+
+
+/* DnD board */
+.dnd-wrap{display:grid;grid-template-columns:minmax(280px, 360px) 1fr;gap:12px;margin-top:.5rem}
+.pool{border:1px solid var(--border);border-radius:.6rem;background:#fff;min-height:240px;max-height:70vh;overflow:auto;padding:.5rem}
+.pool .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem}
+.emp-item{display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);border-radius:.5rem;padding:.35rem .5rem;background:#f9fafb;margin-bottom:.4rem;cursor:grab}
+.emp-item.dragging{opacity:.6}
+.emp-name{font-weight:600}
+.emp-meta{font-size:.78rem;color:#6b7280}
+.emp-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--border);background:#fff}
+.board{border:1px solid var(--border);border-radius:.6rem;background:#fff;padding:.6rem;max-height:70vh;overflow:auto}
+.board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.slot{border:1px dashed var(--border);border-radius:.5rem;padding:.4rem;background:#fcfcfd;min-height:72px}
+.slot.numeric{background:#f8fafc}
+.slot.letter{background:#fff7ed}
+.slot-title{font-size:.8rem;color:#6b7280;margin-bottom:.3rem;display:flex;justify-content:space-between;align-items:center}
+.slot-body{display:flex;flex-wrap:wrap;gap:.35rem}
+.occ{display:flex;align-items:center;gap:.35rem;border:1px solid var(--border);border-radius:.5rem;background:#fff;padding:.2rem .4rem}
+.occ img{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);object-fit:cover}
+.occ .x{cursor:pointer;font-weight:700;color:#ef4444;margin-left:.25rem}
+.drop-hint{border-color:#0d6efd;background:#eef2ff}
+.pool.drop-hint{border-style:solid}
+.board-controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem}
+.smallmuted{font-size:.8rem;color:#6b7280}
+
+
+/* Focus on stations board + pool only */
+#grid, .controls:has(#searchInput), .controls:has(#openDisplayBtn) { display:none !important; }
+
+
+/* highlight target slot */
+@keyframes flashHi { 0%{box-shadow:0 0 0 rgba(13,110,253,.0)} 50%{box-shadow:0 0 0 4px rgba(13,110,253,.35)} 100%{box-shadow:0 0 0 rgba(13,110,253,.0)} }
+.slot.flash-hi{ animation: flashHi 1.2s ease 0s 2; border-color:#0d6efd; }
+.chip.btnlike{ cursor:pointer; background:#eef2ff; border-color:#c7d2fe; }
+
+
+/* Scan highlight */
+.emp-item.flash-hi{animation:scanFlash 1.2s ease 0s 2; border-color:#0d6efd; background:#eef2ff}
+.occ.flash-hi{animation:scanFlash 1.2s ease 0s 2; box-shadow:0 0 0 3px rgba(13,110,253,.35)}
+@keyframes scanFlash {0%{opacity:1}50%{opacity:.75}100%{opacity:1}}
+
+</style>
+
+
+<style>
+/* ES_V44_SETUP_TOOLBAR */
+#quickLinksToolbar{position:sticky;top:0;z-index:1100;background:#fff;padding:.5rem .6rem;border-bottom:1px solid #e5e7eb;display:flex;gap:.5rem;align-items:center}
+#quickLinksToolbar a.btn{display:inline-block;padding:.42rem .75rem;border:1px solid #1f2937;background:#f8fafc;color:#111827;border-radius:.5rem;text-decoration:none;font-weight:600}
+#quickLinksToolbar a.btn:hover{background:#eef2f7}
+</style>
+
+
+<style>
+/* ES_V44_LOCK_CSS */
+.slot.disabled{ background:#fee2e2; border-color:#ef4444; }
+.slot.disabled .slot-body{ opacity:.55; pointer-events:none; }
+.slot-title .lock-toggle{ display:inline-flex; align-items:center; gap:.3rem;
+  border:1px solid #ef4444; color:#b91c1c; background:#fee2e2;
+  padding:.06rem .45rem; border-radius:.5rem; font-size:.75rem; cursor:pointer; margin-left:.4rem;}
+.slot-title .lock-toggle.off{ border-color:#94a3b8; color:#334155; background:#f1f5f9; }
+.lock-toolbar{position:sticky;top:48px;z-index:1000;background:#fff;padding:.4rem .5rem;border-bottom:1px solid #e5e7eb;margin-bottom:.5rem}
+.lock-toolbar .btn{display:inline-block;padding:.38rem .7rem;border:1px solid #1f2937;background:#f8fafc;color:#111827;border-radius:.5rem;cursor:pointer}
+.lock-toolbar .btn:hover{background:#eef2f7}
+</style>
+
+
+<style>
+/* ES_V47_PILL_LIBER_SETUP */
+.pill-liber{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;
+  padding:.06rem .35rem;border-radius:.4rem;font-size:.72rem;font-weight:700;margin-left:.35rem}
+</style>
+
 </head>
-<body class="p-4">
-  <h1>StationSetup</h1>
-  <div id="content"></div>
-  <script>
-    async function fetchData() {
-      const [ds, st] = await Promise.all([
-        fetch("data/dataset.json").then(r => r.json()),
-        fetch("data/stations.json").then(r => r.json())
-      ]);
-      document.getElementById("content").innerText = JSON.stringify({dataset:ds, stations:st}, null, 2);
+<body>
+  <div class="container">
+    <h1>Station Setup <span class="small">— shared dataset + Q1/Q2/Q3 + photo from CSV</span></h1>
+
+    <div class="controls">
+      <div class="filebox">
+        <input id="fileReplace" type="file" accept=".csv,.json">
+        <button class="btn btn-primary" id="btnReplace" type="button">Replace dataset</button>
+        <input id="fileAppend" type="file" accept=".csv,.json">
+        <button class="btn" id="btnAppend" type="button">Append</button>
+      </div>
+      <button class="btn btn-danger" id="btnClearDataset" type="button">Clear Dataset</button>
+      <button class="btn" id="btnClearStations" type="button">Clear Stations</button>
+      <button class="btn" id="btnResetAll" type="button">Reset ALL</button>
+    </div>
+
+    <div class="controls">
+      <input id="searchInput" class="form-control" placeholder="Search by First name / Employee ID / User ID / Type / Station">
+      <button class="btn" id="clearBtn" type="button">Clear search</button>
+      <button class="btn" id="refreshBtn" type="button" onclick="window.location.reload()">Refresh</button>
+      <button class="btn btn-primary" id="openDisplayBtn" type="button">Open Display Page</button>
+    </div>
+
+    
+    <div class="controls">
+      <div class="unused-panel">
+        <div class="unused-header">
+          <strong>Unassigned numeric stations</strong>
+          <span class="badge" id="unusedCount">0</span>
+        </div>
+        <div class="unused-list" id="unusedList"></div>
+      </div>
+    </div>
+
+
+    <div class="controls sticky">
+      <label class="small">Quarter mapping:
+        <select class="form-select" id="quarterSel">
+          <option value="Q1">Q1</option>
+          <option value="Q2" selected>Q2</option>
+          <option value="Q3">Q3</option>
+        </select>
+      </label>
+      <button class="btn btn-primary" id="applyQuarterBtn" type="button">Apply mapping to ALL assigned</button>
+      <button class="btn" id="cycleQuarterBtn" type="button">Next Quarter</button>
+      <span class="small">Numeric stations follow the Q1→Q2→Q3 table; letter codes unaffected.</span>
+    </div>
+
+    <div class="small">Total employees: <span id="count"></span> · Assigned: <span id="assigned"></span></div>
+
+
+    <div class="controls sticky">
+      <strong>Station Board (Drag & Drop)</strong>
+      <div class="board-controls"><a class="btn btn-primary" href="StationDisplay.html" target="_blank">Open Display</a>
+      <input id="scanSearch" class="form-control" placeholder="Scan Badge ID or type Name/Login, press Enter" autofocus>
+
+      <button class="btn btn-danger" id="btnClearAllStations" type="button">Clear ALL Stations</button>
+      <label class="small"><input type="checkbox" id="reassignRule" checked> Reassign rule (numeric: replace)</label>
+
+        <label class="small"><input type="checkbox" id="showAssigned" checked> Show assigned in list</label>
+        <input id="empSearch" class="form-control" placeholder="Search employees in list">
+        <span class="smallmuted">Drag a name into a station. Numeric stations accept one name; letter codes accept many. Drag back to the pool to unassign.</span>
+      </div>
+    </div>
+
+    <div class="dnd-wrap">
+      <div class="pool" id="empPool" data-drop="POOL">
+        <div class="head">
+          <strong>Employee Pool</strong>
+          <span class="smallmuted">Drop here to unassign</span>
+        </div>
+        <div id="poolList"></div>
+      </div>
+
+      <div class="board" id="stationBoard">
+        
+<div id="quickLinksToolbar">
+  <a class="btn" href="index.html">Home</a>
+  <a class="btn" href="AssignedStations.html" target="_blank">Assigned Stations</a>
+  <a class="btn" href="AddLS.html">+ Add LiberShare</a>
+</div>
+<div class="board-grid" id="boardGrid"></div>
+      </div>
+    </div>
+
+
+    <div id="grid" class="grid"></div>
+
+    <script id="embedded-data" type="application/json">[{"uid": "12061986", "employee_id": "200871664", "user_id": "anwmccul", "first_name": "Andrew", "employee_type": "3PTY", "barcode_id": "12061986", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=anwmccul"}, {"uid": "14044572", "employee_id": "204964561", "user_id": "isianmol", "first_name": "Anmoldeep", "employee_type": "TEMP", "barcode_id": "14044572", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=isianmol"}, {"uid": "13725320", "employee_id": "200651934", "user_id": "nhariski", "first_name": "Josh", "employee_type": "3PTY", "barcode_id": "13725320", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=nhariski"}, {"uid": "12599528", "employee_id": "201267789", "user_id": "deolusun", "first_name": "Sunny", "employee_type": "AMZN", "barcode_id": "12599528", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=deolusun"}, {"uid": "12847518", "employee_id": "200913379", "user_id": "ilithian", "first_name": "Li-Thian", "employee_type": "AMZN", "barcode_id": "12847518", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ilithian"}, {"uid": "13318898", "employee_id": "205370693", "user_id": "hshahanq", "first_name": "Hitesh", "employee_type": "TEMP", "barcode_id": "13318898", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hshahanq"}, {"uid": "15237954", "employee_id": "201905971", "user_id": "syednazx", "first_name": "Syed", "employee_type": "AMZN", "barcode_id": "15237954", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=syednazx"}, {"uid": "14934908", "employee_id": "202597078", "user_id": "espejoml", "first_name": "Liliana", "employee_type": "3PTY", "barcode_id": "14934908", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=espejoml"}, {"uid": "11733874", "employee_id": "200760782", "user_id": "ajaiiaks", "first_name": "AKSHAY", "employee_type": "AMZN", "barcode_id": "11733874", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ajaiiaks"}, {"uid": "13975833", "employee_id": "203169108", "user_id": "siyohana", "first_name": "Simi", "employee_type": "AMZN", "barcode_id": "13975833", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=siyohana"}, {"uid": "12518585", "employee_id": "204047157", "user_id": "muhumade", "first_name": "Aden", "employee_type": "TEMP", "barcode_id": "12518585", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=muhumade"}, {"uid": "11807356", "employee_id": "202309256", "user_id": "edpancha", "first_name": "Dhruvesh", "employee_type": "AMZN", "barcode_id": "11807356", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=edpancha"}, {"uid": "12531093", "employee_id": "204271339", "user_id": "sulelabd", "first_name": "Suleiman", "employee_type": "TEMP", "barcode_id": "12531093", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sulelabd"}, {"uid": "15091753", "employee_id": "200603981", "user_id": "galiarif", "first_name": "ARIF", "employee_type": "AMZN", "barcode_id": "15091753", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=galiarif"}, {"uid": "12208740", "employee_id": "110663833", "user_id": "vmarhire", "first_name": "Hiren", "employee_type": "3PTY", "barcode_id": "12208740", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=vmarhire"}, {"uid": "13357725", "employee_id": "205350339", "user_id": "bhaktthq", "first_name": "Bhakti", "employee_type": "TEMP", "barcode_id": "13357725", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=bhaktthq"}, {"uid": "13719880", "employee_id": "111107095", "user_id": "fazelmoh", "first_name": "Mohammad", "employee_type": "3PTY", "barcode_id": "13719880", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fazelmoh"}, {"uid": "11409779", "employee_id": "200699684", "user_id": "caminpad", "first_name": "Amin", "employee_type": "AMZN", "barcode_id": "11409779", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=caminpad"}, {"uid": "0", "employee_id": "202309121", "user_id": "majiabdo", "first_name": "Majid", "employee_type": "AMZN", "barcode_id": "0", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=majiabdo"}, {"uid": "13340886", "employee_id": "201943431", "user_id": "csajagan", "first_name": "Ganga", "employee_type": "AMZN", "barcode_id": "13340886", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=csajagan"}, {"uid": "12713570", "employee_id": "202165803", "user_id": "yuktav", "first_name": "Yukta", "employee_type": "AMZN", "barcode_id": "12713570", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yuktav"}, {"uid": "14182106", "employee_id": "200880273", "user_id": "chenyuav", "first_name": "Yuanfu", "employee_type": "AMZN", "barcode_id": "14182106", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chenyuav"}, {"uid": "14963345", "employee_id": "205346214", "user_id": "igosmaya", "first_name": "Mayank", "employee_type": "TEMP", "barcode_id": "14963345", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=igosmaya"}, {"uid": "12029241", "employee_id": "202409220", "user_id": "iousmndi", "first_name": "Ousmane", "employee_type": "AMZN", "barcode_id": "12029241", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=iousmndi"}, {"uid": "14280746", "employee_id": "204543429", "user_id": "mayambbe", "first_name": "Bernisse", "employee_type": "3PTY", "barcode_id": "14280746", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mayambbe"}, {"uid": "14423218", "employee_id": "110458662", "user_id": "lebaille", "first_name": "Lee", "employee_type": "3PTY", "barcode_id": "14423218", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lebaille"}, {"uid": "11637131", "employee_id": "202046595", "user_id": "prabhjiy", "first_name": "Prabh", "employee_type": "AMZN", "barcode_id": "11637131", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=prabhjiy"}, {"uid": "12001867", "employee_id": "200646341", "user_id": "rhafaiza", "first_name": "Faiza", "employee_type": "AMZN", "barcode_id": "12001867", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhafaiza"}, {"uid": "14370543", "employee_id": "200754292", "user_id": "loanlle", "first_name": "Loan", "employee_type": "AMZN", "barcode_id": "14370543", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=loanlle"}, {"uid": "12322038", "employee_id": "201913515", "user_id": "kpatesak", "first_name": "Sakshi", "employee_type": "AMZN", "barcode_id": "12322038", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kpatesak"}, {"uid": "13787030", "employee_id": "203920384", "user_id": "fcyriell", "first_name": "Cyrielle", "employee_type": "AMZN", "barcode_id": "13787030", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fcyriell"}, {"uid": "11191786", "employee_id": "200880276", "user_id": "yitjin", "first_name": "Jing", "employee_type": "AMZN", "barcode_id": "11191786", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yitjin"}, {"uid": "216780", "employee_id": "204738173", "user_id": "hamayoq", "first_name": "Mayo", "employee_type": "3PTY", "barcode_id": "216780", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hamayoq"}, {"uid": "12779207", "employee_id": "202343364", "user_id": "kaurykhu", "first_name": "Khushdeep", "employee_type": "AMZN", "barcode_id": "12779207", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kaurykhu"}, {"uid": "13613190", "employee_id": "203898314", "user_id": "mgeeleka", "first_name": "Geele", "employee_type": "AMZN", "barcode_id": "13613190", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mgeeleka"}, {"uid": "13449410", "employee_id": "203227377", "user_id": "pandavva", "first_name": "Vandit", "employee_type": "TEMP", "barcode_id": "13449410", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=pandavva"}, {"uid": "15226098", "employee_id": "200714813", "user_id": "foampasc", "first_name": "PASCAL", "employee_type": "TEMP", "barcode_id": "15226098", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=foampasc"}, {"uid": "11365574", "employee_id": "200547453", "user_id": "cseleren", "first_name": "selam", "employee_type": "AMZN", "barcode_id": "11365574", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=cseleren"}, {"uid": "11160301", "employee_id": "201752232", "user_id": "fmohkhat", "first_name": "khatra", "employee_type": "AMZN", "barcode_id": "11160301", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fmohkhat"}, {"uid": "11475651", "employee_id": "203260894", "user_id": "fthierra", "first_name": "Andrea", "employee_type": "3PTY", "barcode_id": "11475651", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fthierra"}, {"uid": "15299050", "employee_id": "202234844", "user_id": "janbanya", "first_name": "Janos", "employee_type": "3PTY", "barcode_id": "15299050", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=janbanya"}, {"uid": "11621939", "employee_id": "203979863", "user_id": "mitkhush", "first_name": "Miss", "employee_type": "AMZN", "barcode_id": "11621939", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mitkhush"}, {"uid": "12575261", "employee_id": "202729340", "user_id": "joflanca", "first_name": "Joshua", "employee_type": "3PTY", "barcode_id": "12575261", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=joflanca"}, {"uid": "14426402", "employee_id": "200875781", "user_id": "denibris", "first_name": "Denis", "employee_type": "AMZN", "barcode_id": "14426402", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=denibris"}, {"uid": "15123596", "employee_id": "201267722", "user_id": "etchouwa", "first_name": "Evelyne", "employee_type": "AMZN", "barcode_id": "15123596", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=etchouwa"}, {"uid": "12165170", "employee_id": "204271292", "user_id": "mohiqrow", "first_name": "IQRO", "employee_type": "TEMP", "barcode_id": "12165170", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohiqrow"}, {"uid": "13350298", "employee_id": "109366203", "user_id": "gracetet", "first_name": "Teta", "employee_type": "AMZN", "barcode_id": "13350298", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gracetet"}, {"uid": "13466384", "employee_id": "204248224", "user_id": "varmeetk", "first_name": "Meet", "employee_type": "TEMP", "barcode_id": "13466384", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=varmeetk"}, {"uid": "13240071", "employee_id": "205076017", "user_id": "tolljake", "first_name": "Jakeob", "employee_type": "3PTY", "barcode_id": "13240071", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=tolljake"}, {"uid": "13619784", "employee_id": "201943389", "user_id": "brwshaka", "first_name": "Brandon", "employee_type": "AMZN", "barcode_id": "13619784", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=brwshaka"}, {"uid": "15127481", "employee_id": "203847189", "user_id": "lanitcha", "first_name": "Anitaben", "employee_type": "TEMP", "barcode_id": "15127481", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lanitcha"}, {"uid": "13256605", "employee_id": "200536296", "user_id": "ammtheva", "first_name": "Ammany", "employee_type": "AMZN", "barcode_id": "13256605", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ammtheva"}, {"uid": "12222571", "employee_id": "110895730", "user_id": "rhardiza", "first_name": "Hardik", "employee_type": "3PTY", "barcode_id": "12222571", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhardiza"}, {"uid": "13750145", "employee_id": "112736545", "user_id": "insimile", "first_name": "Coletta", "employee_type": "AMZN", "barcode_id": "13750145", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=insimile"}, {"uid": "13225249", "employee_id": "200928118", "user_id": "raminani", "first_name": "Ramina", "employee_type": "AMZN", "barcode_id": "13225249", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=raminani"}, {"uid": "14400621", "employee_id": "204407170", "user_id": "rinrinkm", "first_name": "Rinku", "employee_type": "TEMP", "barcode_id": "14400621", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rinrinkm"}, {"uid": "13400843", "employee_id": "200699770", "user_id": "qosmanha", "first_name": "Hana", "employee_type": "AMZN", "barcode_id": "13400843", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=qosmanha"}, {"uid": "11167276", "employee_id": "113031502", "user_id": "olgpard", "first_name": "Olga", "employee_type": "AMZN", "barcode_id": "11167276", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=olgpard"}, {"uid": "13814605", "employee_id": "203377807", "user_id": "komakauf", "first_name": "Komaljeet", "employee_type": "AMZN", "barcode_id": "13814605", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=komakauf"}, {"uid": "14768465", "employee_id": "203227375", "user_id": "adenijki", "first_name": "kikelomo", "employee_type": "AMZN", "barcode_id": "14768465", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=adenijki"}, {"uid": "11615927", "employee_id": "202120383", "user_id": "arlenkus", "first_name": "Arlette", "employee_type": "AMZN", "barcode_id": "11615927", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=arlenkus"}, {"uid": "12827525", "employee_id": "106751597", "user_id": "labaahme", "first_name": "Modie", "employee_type": "AMZN", "barcode_id": "12827525", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=labaahme"}, {"uid": "11387412", "employee_id": "200351601", "user_id": "zherjane", "first_name": "Janet", "employee_type": "3PTY", "barcode_id": "11387412", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zherjane"}, {"uid": "14909029", "employee_id": "200379341", "user_id": "kaukarmq", "first_name": "Karmveer", "employee_type": "AMZN", "barcode_id": "14909029", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kaukarmq"}, {"uid": "11620625", "employee_id": "200994324", "user_id": "mowcmoha", "first_name": "Mohamed", "employee_type": "AMZN", "barcode_id": "11620625", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mowcmoha"}, {"uid": "13268677", "employee_id": "203865072", "user_id": "mporpaul", "first_name": "MPORE", "employee_type": "AMZN", "barcode_id": "13268677", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mporpaul"}, {"uid": "12253969", "employee_id": "202185338", "user_id": "behboofa", "first_name": "Fatemeh", "employee_type": "AMZN", "barcode_id": "12253969", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=behboofa"}, {"uid": "12178076", "employee_id": "203207701", "user_id": "bzacharw", "first_name": "Zacharie", "employee_type": "3PTY", "barcode_id": "12178076", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=bzacharw"}, {"uid": "14485512", "employee_id": "202942896", "user_id": "pitterja", "first_name": "Jacob", "employee_type": "3PTY", "barcode_id": "14485512", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=pitterja"}, {"uid": "11059138", "employee_id": "204248428", "user_id": "sfattahi", "first_name": "Sepehr", "employee_type": "TEMP", "barcode_id": "11059138", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sfattahi"}, {"uid": "12992267", "employee_id": "200433057", "user_id": "rgraquel", "first_name": "Raquel", "employee_type": "AMZN", "barcode_id": "12992267", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rgraquel"}, {"uid": "14310606", "employee_id": "200969439", "user_id": "malekalt", "first_name": "Tanjida", "employee_type": "AMZN", "barcode_id": "14310606", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=malekalt"}, {"uid": "187866", "employee_id": "104806754", "user_id": "amshukri", "first_name": "Shukri", "employee_type": "AMZN", "barcode_id": "187866", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=amshukri"}, {"uid": "13757003", "employee_id": "200964854", "user_id": "jasprmah", "first_name": "Jaspreet", "employee_type": "AMZN", "barcode_id": "13757003", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=jasprmah"}, {"uid": "13300951", "employee_id": "203141872", "user_id": "rapheawa", "first_name": "Rapheal", "employee_type": "AMZN", "barcode_id": "13300951", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rapheawa"}, {"uid": "72507", "employee_id": "113059376", "user_id": "badgfrit", "first_name": "Badger", "employee_type": "AMZN", "barcode_id": "72507", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=badgfrit"}, {"uid": "14532128", "employee_id": "201363260", "user_id": "piseamus", "first_name": "Seamus", "employee_type": "3PTY", "barcode_id": "14532128", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=piseamus"}, {"uid": "14917641", "employee_id": "200880601", "user_id": "gaikcaka", "first_name": "Akash", "employee_type": "AMZN", "barcode_id": "14917641", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gaikcaka"}, {"uid": "12665587", "employee_id": "203202705", "user_id": "chhdeepp", "first_name": "Deepak", "employee_type": "AMZN", "barcode_id": "12665587", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chhdeepp"}, {"uid": "13476779", "employee_id": "110368418", "user_id": "colailau", "first_name": "Laura", "employee_type": "AMZN", "barcode_id": "13476779", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=colailau"}, {"uid": "13931969", "employee_id": "200413970", "user_id": "ljonatal", "first_name": "Jonathan", "employee_type": "AMZN", "barcode_id": "13931969", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=ljonatal"}, {"uid": "13816668", "employee_id": "202431581", "user_id": "iaminimo", "first_name": "Iman", "employee_type": "AMZN", "barcode_id": "13816668", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=iaminimo"}, {"uid": "299120", "employee_id": "200760689", "user_id": "dseykane", "first_name": "Seydi", "employee_type": "TEMP", "barcode_id": "299120", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=dseykane"}, {"uid": "12447106", "employee_id": "204250095", "user_id": "yasppate", "first_name": "Yashkumar", "employee_type": "TEMP", "barcode_id": "12447106", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=yasppate"}, {"uid": "13002426", "employee_id": "203579984", "user_id": "shsharig", "first_name": "shahriar", "employee_type": "AMZN", "barcode_id": "13002426", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=shsharig"}, {"uid": "11432321", "employee_id": "204989917", "user_id": "chsumiti", "first_name": "Sumit", "employee_type": "TEMP", "barcode_id": "11432321", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=chsumiti"}, {"uid": "11452944", "employee_id": "203202689", "user_id": "sambaffo", "first_name": "Samuel", "employee_type": "AMZN", "barcode_id": "11452944", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sambaffo"}, {"uid": "11650855", "employee_id": "203230130", "user_id": "vadsacfi", "first_name": "Firoz", "employee_type": "AMZN", "barcode_id": "11650855", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=vadsacfi"}, {"uid": "12120271", "employee_id": "200754297", "user_id": "qccartil", "first_name": "Charles", "employee_type": "AMZN", "barcode_id": "12120271", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=qccartil"}, {"uid": "11734397", "employee_id": "113031391", "user_id": "harpsina", "first_name": "Harpreet", "employee_type": "AMZN", "barcode_id": "11734397", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=harpsina"}, {"uid": "11012489", "employee_id": "205403325", "user_id": "sunipsun", "first_name": "SUNIL", "employee_type": "TEMP", "barcode_id": "11012489", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=sunipsun"}, {"uid": "12704620", "employee_id": "202343449", "user_id": "dinawcj", "first_name": "CJ", "employee_type": "AMZN", "barcode_id": "12704620", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=dinawcj"}, {"uid": "12206628", "employee_id": "200491897", "user_id": "kahinhfa", "first_name": "Faisal", "employee_type": "AMZN", "barcode_id": "12206628", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kahinhfa"}, {"uid": "13511268", "employee_id": "204950486", "user_id": "zjaypate", "first_name": "Jaykumar", "employee_type": "TEMP", "barcode_id": "13511268", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zjaypate"}, {"uid": "14089286", "employee_id": "204538101", "user_id": "lprchawl", "first_name": "Pranav", "employee_type": "TEMP", "barcode_id": "14089286", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=lprchawl"}, {"uid": "12824540", "employee_id": "201191431", "user_id": "rtarakor", "first_name": "Taras", "employee_type": "3PTY", "barcode_id": "12824540", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rtarakor"}, {"uid": "15204453", "employee_id": "204963277", "user_id": "patelsil", "first_name": "Silva", "employee_type": "TEMP", "barcode_id": "15204453", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=patelsil"}, {"uid": "15202238", "employee_id": "201815375", "user_id": "mohampay", "first_name": "Mohamed", "employee_type": "3PTY", "barcode_id": "15202238", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohampay"}, {"uid": "13482792", "employee_id": "105488996", "user_id": "hussnabd", "first_name": "abdi", "employee_type": "AMZN", "barcode_id": "13482792", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=hussnabd"}, {"uid": "12361694", "employee_id": "105050327", "user_id": "joycstev", "first_name": "joyce", "employee_type": "AMZN", "barcode_id": "12361694", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=joycstev"}, {"uid": "14399477", "employee_id": "204339585", "user_id": "priirako", "first_name": "Princia", "employee_type": "TEMP", "barcode_id": "14399477", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=priirako"}, {"uid": "12106056", "employee_id": "105050285", "user_id": "kademosu", "first_name": "Kayode", "employee_type": "3PTY", "barcode_id": "12106056", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=kademosu"}, {"uid": "14734350", "employee_id": "200928178", "user_id": "karsaidc", "first_name": "said", "employee_type": "AMZN", "barcode_id": "14734350", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=karsaidc"}, {"uid": "12428590", "employee_id": "204485451", "user_id": "nsabimau", "first_name": "Nsabimana", "employee_type": "TEMP", "barcode_id": "12428590", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=nsabimau"}, {"uid": "15050052", "employee_id": "200802981", "user_id": "gamvima", "first_name": "Vimal", "employee_type": "AMZN", "barcode_id": "15050052", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=gamvima"}, {"uid": "14458061", "employee_id": "200880363", "user_id": "rhawadir", "first_name": "HAWA", "employee_type": "AMZN", "barcode_id": "14458061", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=rhawadir"}, {"uid": "14998790", "employee_id": "203306158", "user_id": "jashnkau", "first_name": "Jashandeep", "employee_type": "AMZN", "barcode_id": "14998790", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=jashnkau"}, {"uid": "12624186", "employee_id": "202408949", "user_id": "mohhafha", "first_name": "Afham", "employee_type": "AMZN", "barcode_id": "12624186", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=mohhafha"}, {"uid": "12938845", "employee_id": "200433044", "user_id": "marinamj", "first_name": "Marina", "employee_type": "AMZN", "barcode_id": "12938845", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=marinamj"}, {"uid": "15171982", "employee_id": "112253688", "user_id": "fasholaa", "first_name": "Ayodele", "employee_type": "3PTY", "barcode_id": "15171982", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=fasholaa"}, {"uid": "11665977", "employee_id": "111097472", "user_id": "paavinam", "first_name": "Avinash", "employee_type": "3PTY", "barcode_id": "11665977", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=paavinam"}, {"uid": "12294800", "employee_id": "200913367", "user_id": "farahnav", "first_name": "Navid", "employee_type": "3PTY", "barcode_id": "12294800", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=farahnav"}, {"uid": "14822215", "employee_id": "200913373", "user_id": "htabdiri", "first_name": "Abdirizak", "employee_type": "AMZN", "barcode_id": "14822215", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=htabdiri"}, {"uid": "13629216", "employee_id": "200823011", "user_id": "zkamalho", "first_name": "Karan", "employee_type": "AMZN", "barcode_id": "13629216", "photo_url": "https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=zkamalho"}]</script>
+    
+<script>
+const STORE_KEY='ES_DATASET_V4';
+const STORE_STATIONS='ES_STATIONS_V4';
+var ES_CH=null; try{ ES_CH = new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH = null; }
+function readJSON(key, fallback){ try{ var t=localStorage.getItem(key); return t?JSON.parse(t):fallback; }catch(e){ return fallback; } }
+function writeJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); if(ES_CH){ try{ ES_CH.postMessage({type:key, value:val}); }catch(e){} } }
+function getDataset(fallback){ var ds=readJSON(STORE_KEY,null); if(!ds && fallback){ ds=fallback; writeJSON(STORE_KEY, ds); } return ds||[]; }
+function setDataset(arr){ writeJSON(STORE_KEY, arr||[]); }
+function clearDataset(){ writeJSON(STORE_KEY, []); }
+function getStations(){ return readJSON(STORE_STATIONS, {})||{}; }
+function setStations(map){ writeJSON(STORE_STATIONS, map||{}); }
+function setStation(uid, station){ var map=getStations(); if(station){ map[uid]=station; } else { delete map[uid]; } setStations(map); }
+function clearStations(){ setStations({}); try{ localStorage.removeItem('ES_HOLDER_CACHE_V1'); }catch(e){} try{ if(ES_CH){ ES_CH.postMessage({type:'ES_HOLDER_CACHE_V1', value:{}}); } }catch(e){} }
+window.addEventListener('storage', function(e){ if(e.key===STORE_KEY||e.key===STORE_STATIONS){ if(typeof window.onStoreUpdate==='function'){ try{ window.onStoreUpdate(e.key, JSON.parse(e.newValue||'null')); }catch(err){ location.reload(); } } else { location.reload(); } } });
+if(ES_CH){ ES_CH.onmessage=function(ev){ if(ev.data && (ev.data.type===STORE_KEY || ev.data.type===STORE_STATIONS)){ if(typeof window.onStoreUpdate==='function'){ window.onStoreUpdate(ev.data.type, ev.data.value); } } }; }
+</script>
+
+    
+<script>
+var EXTRA_CODES = ["E2S","PS","JC","JP","FPY","IOL","WS","STOW","PICK","IXD","SINGLE","AFE","DOCK","SSD","T-R","VRC","PA","PG","DPT","BOXES","PAX","OTHER","AR", "ISS","ICQA"];
+function allStationCodes(){
+  var arr = [];
+  for(var g=1; g<=4; g++){
+    var max = (g===4) ? 23 : 28;
+    for(var i=1; i<=max; i++){ arr.push(g+"-"+i); }
+  }
+  return arr.concat(EXTRA_CODES);
+}
+function esc(s){ s = String(s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function ph(seed){ return "https://picsum.photos/seed/"+encodeURIComponent(seed)+"/200/200"; }
+function isNumericStation(v){ return /^[1-4]-\d+$/.test(v||''); }
+function usedStationsSet(){ var set={}; var vals = Object.values(getStations()); for(var i=0;i<vals.length;i++){ var v=vals[i]; if(v){ set[v]=true; } } return set; }
+function buildStationOptionsHTML(selected, usedSet){
+  if(selected==null) selected='';
+  if(!usedSet) usedSet={};
+  function opt(v){
+    var numeric = /^[1-4]-\d+$/.test(v);
+    var dis = (usedSet[v] && v!==selected && numeric) ? ' disabled' : '';
+    var s = (v===selected)?' selected':'';
+    return '<option value="'+v+'"'+s+dis+'>'+v+'</option>';
+  }
+  var html='<option value=""></option>';
+  var codes = allStationCodes();
+  for(var i=0;i<codes.length;i++){ html += opt(codes[i]); }
+  return html;
+}
+function imgFromItem(item){
+  var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+  if(item.photo_url && /^https?:\/\//.test(item.photo_url)){ return item.photo_url; }
+  return ph(seed);
+}
+</script>
+
+    <script>
+      var BASE_Q1 = [1,3,5,7,9,11,13,15,17,19,21,23,25,27];
+      var BASE_Q2 = [27,25,23,21,19,1,3,5,7,9,11,13,15,17];
+      var BASE_Q3 = [19,17,15,13,11,9,27,25,23,21,1,3,5,7];
+
+      function groupMax(g){ return g===4 ? 23 : 28; }
+
+      function buildMapsForGroup(g){
+        var max = groupMax(g);
+        var rows = [];
+        for(var i=0;i<BASE_Q1.length;i++){
+          var a=BASE_Q1[i], b=BASE_Q2[i], c=BASE_Q3[i];
+          if(a<=max && b<=max && c<=max) rows.push([a,b,c]);
+        }
+        var idxBy = {Q1:{}, Q2:{}, Q3:{}};
+        for(var j=0;j<rows.length;j++){
+          var r=rows[j];
+          idxBy.Q1[g+'-'+r[0]]=j;
+          idxBy.Q2[g+'-'+r[1]]=j;
+          idxBy.Q3[g+'-'+r[2]]=j;
+        }
+        return {rows:rows, idxBy:idxBy};
+      }
+
+      var GROUP_CACHE = {};
+      function getGroupMaps(g){
+        if(!GROUP_CACHE[g]) GROUP_CACHE[g]=buildMapsForGroup(g);
+        return GROUP_CACHE[g];
+      }
+
+      function currentData(){ return getDataset(JSON.parse(document.getElementById('embedded-data').textContent)); }
+      var allData = currentData();
+      var view = allData.slice(0);
+
+      function getStation(uid){ var m=getStations(); return m[uid] || ''; }
+
+      function selectOptionsHTML(uid){
+        var used = usedStationsSet();
+        var selected = getStation(uid);
+        return buildStationOptionsHTML(selected, used);
+      }
+
+      function mapStationToQuarter(station, targetQ){
+        var m = /^([1-4])-(\d+)$/.exec(station||''); if(!m) return station;
+        var g = parseInt(m[1],10);
+        var gm = getGroupMaps(g);
+        var idx = gm.idxBy.Q1[station]; if(idx==null) idx = gm.idxBy.Q2[station]; if(idx==null) idx = gm.idxBy.Q3[station];
+        if(idx==null) return station;
+        var row = gm.rows[idx];
+        if(targetQ==='Q1') return g+'-'+row[0];
+        if(targetQ==='Q2') return g+'-'+row[1];
+        if(targetQ==='Q3') return g+'-'+row[2];
+        return station;
+      }
+
+      function applyQuarterToAll(targetQ){
+        var cur = getStations(); var out = {}; var k;
+        for(k in cur){ if(cur.hasOwnProperty(k)){ var st = cur[k]; if(st){ out[k] = mapStationToQuarter(st, targetQ); } } }
+        setStations(out);
+        refreshAllSelects();
+        alert('Applied '+targetQ+' mapping.');
+      }
+
+      function card(item){
+        var img = imgFromItem(item);
+        var st = getStation(item.uid);
+        var stationBadge = st ? '<span class="badge">Station: '+esc(st)+'</span>' : '';
+        return ''+
+          '<div class="card" data-uid="'+esc(item.uid)+'">'+
+            '<div class="card-body">'+
+              '<div class="row">'+
+                '<img class="thumb-sm" src="'+img+'" alt="">'+
+                '<div>'+
+                  '<div class="title">'+esc(item.first_name||'—')+'</div>'+
+                  '<div class="meta">Emp: '+esc(item.employee_id||'—')+' · User: '+esc(item.user_id||'—')+' · Type: '+esc(item.employee_type||'—')+'</div>'+
+                  stationBadge+
+                '</div>'+
+              '</div>'+
+              '<div class="inline">'+
+                '<label class="small" for="st_'+esc(item.uid)+'">Station:</label>'+
+                '<select class="form-select stsel" id="st_'+esc(item.uid)+'">'+selectOptionsHTML(item.uid)+'</select>'+
+                '<button class="btn btn-primary btn-save" data-uid="'+esc(item.uid)+'" type="button">Save</button>'+
+                '<button class="btn btn-clear" data-uid="'+esc(item.uid)+'" type="button">Clear</button>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+      }
+
+      function render(list){
+        var grid = document.getElementById('grid');
+        var html=''; for(var i=0;i<list.length;i++){ html += card(list[i]); }
+        grid.innerHTML = html;
+        bindCardEvents();
+        updateCounters();
+      }
+
+      function bindCardEvents(){
+        var sels = document.querySelectorAll('.stsel');
+        for(var i=0;i<sels.length;i++){
+          sels[i].addEventListener('change', function(e){
+            var uid = this.id.replace('st_','');
+            setStation(uid, this.value);
+            refreshAllSelects();
+          });
+        }
+        var saves = document.querySelectorAll('.btn-save');
+        for(var j=0;j<saves.length;j++){
+          saves[j].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-uid');
+            var sel = document.getElementById('st_'+uid);
+            setStation(uid, sel.value);
+            refreshAllSelects();
+          });
+        }
+        var clears = document.querySelectorAll('.btn-clear');
+        for(var k=0;k<clears.length;k++){
+          clears[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-uid');
+            setStation(uid, '');
+            refreshAllSelects();
+          });
+        }
+      }
+
+      function refreshAllSelects(){
+        renderUnusedPanel();
+        var sels = document.querySelectorAll('.stsel');
+        var used = usedStationsSet();
+        for(var i=0;i<sels.length;i++){
+          var sel = sels[i];
+          var uid = sel.id.replace('st_','');
+          var selected = getStation(uid);
+          sel.innerHTML = buildStationOptionsHTML(selected, used);
+          sel.value = selected;
+          // update badge
+          var card = sel.closest('.card');
+          var badge = card.querySelector('.badge');
+          if(selected){
+            if(!badge){
+              var b = document.createElement('span');
+              b.className='badge';
+              b.textContent='Station: '+selected;
+              card.querySelector('.row > div').appendChild(b);
+            }else{
+              badge.textContent='Station: '+selected;
+            }
+          }else if(badge){
+            badge.parentNode.removeChild(badge);
+          }
+        }
+        updateCounters();
+      }
+
+      function updateCounters(){
+        var map = getStations();
+        var cnt=0; for(var k in map){ if(map[k]) cnt++; }
+        document.getElementById('count').textContent = String(allData.length);
+        document.getElementById('assigned').textContent = String(cnt);
+      }
+
+      function filter(q){
+        if(!q){ return allData; }
+        q = q.toLowerCase();
+        var m = getStations();
+        var out=[]; for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var ok = (String(x.first_name||'').toLowerCase().indexOf(q)!==-1) ||
+                   (String(x.employee_id||'').toLowerCase().indexOf(q)!==-1) ||
+                   (String(x.user_id||'').toLowerCase().indexOf(q)!==-1) ||
+                   (String(x.employee_type||'').toLowerCase().indexOf(q)!==-1) ||
+                   (String(x.barcode_id||'').toLowerCase().indexOf(q)!==-1) ||
+                   (String(m[x.uid]||'').toLowerCase().indexOf(q)!==-1);
+          if(ok) out.push(x);
+        }
+        return out;
+      }
+
+      document.getElementById('searchInput').addEventListener('input', function(e){ view = filter(e.target.value); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ });
+      document.getElementById('clearBtn').addEventListener('click', function(){ document.getElementById('searchInput').value=''; view = allData.slice(0); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ });
+      document.getElementById('openDisplayBtn').addEventListener('click', function(){ window.open('StationDisplay.html', 'stationDisplay'); });
+
+      // CSV/JSON import with photo column support
+      function parseCsvWithPhoto(text){
+        var lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n'); if(!lines.length) return [];
+        var headers = lines[0].split(',').map(function(h){return h.trim();});
+        var rows=[];
+        for(var i=1;i<lines.length;i++){
+          if(!lines[i]) continue;
+          var cells=[]; var cur=''; var inQ=false; var line=lines[i];
+          for(var j=0;j<line.length;j++){ var ch=line[j]; if(ch==='"'){ inQ=!inQ; } else if(ch===',' && !inQ){ cells.push(cur); cur=''; } else { cur+=ch; } }
+          cells.push(cur);
+          var obj={}; for(var k=0;k<headers.length;k++){ obj[headers[k]] = cells[k]||''; }
+          rows.push(obj);
+        }
+        function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+        var CEX={ emp_id:['employeeid','empid','eid'], user_id:['userid','userlogin','username','adid','networkid','samaccountname','upn','mailnickname'], emp_name:['employeename','name','fullname','displayname'], emp_type:['employeetype','employmenttype','emptype','type'], barcode:['barcodeid','barcode','badgeid','badge','cardid','card','rfid','proxcard','proximitycard','scanid','scancode'], photo:['photo','photourl','image','imageurl','picture','avatar','img','url','link','photolink','pictureurl','صورة','فوتو'] };
+        var CCON={ emp_id:['employeeid','empid','employee','emp','id'], user_id:['userid','user','login','network','account','sam','upn'], emp_name:['name','employee','full','display'], emp_type:['employeetype','emptype','type'], barcode:['barcode','badge','card','rfid','scan','prox'], photo:['photo','image','picture','avatar','img','url','link','صورة','فوتو'] };
+        var headersN={}; for(var h=0;h<headers.length;h++){ headersN[headers[h]] = norm(headers[h]); }
+        function pickColumn(target){ 
+          var h; 
+          for(h in headersN){ if(CEX[target].indexOf(headersN[h])!==-1) return h; } 
+          var best=headers[0],score=-1; 
+          for(h in headersN){ var s=0; for(var t=0;t<CCON[target].length;t++){ if(headersN[h].indexOf(CCON[target][t])!==-1) s+=CCON[target][t].length; } if(s>score){ score=s; best=h; } } 
+          return best; 
+        }
+        var col_emp_id=pickColumn('emp_id'), col_user_id=pickColumn('user_id'), col_emp_name=pickColumn('emp_name'), col_emp_type=pickColumn('emp_type'), col_barcode=pickColumn('barcode'), col_photo=pickColumn('photo');
+        function firstWord(raw){ var s=String(raw||'').trim(); if(!s) return ''; if(s.indexOf(',')!==-1){ var parts=s.split(','); if(parts.length>1 && parts[1]){ return parts[1].trim().split(/\s+/)[0]; } } return s.split(/\s+/)[0]; }
+        var arr=[]; for(var r=0;r<rows.length;r++){ var row=rows[r]; var emp_id=String(row[col_emp_id]||''); var user_id=String(row[col_user_id]||''); var first_name=firstWord(row[col_emp_name]); var employee_type=String(row[col_emp_type]||''); var barcode_id=String(row[col_barcode]||''); var photo_url=String(row[col_photo]||''); var uid= barcode_id || emp_id || user_id || ('row_'+r); arr.push({uid:uid, employee_id:emp_id, user_id:user_id, first_name:first_name, employee_type:employee_type, barcode_id:barcode_id, photo_url:photo_url}); }
+        return arr;
+      }
+
+      function handleReplace(finput){
+        var f = finput.files[0]; if(!f) return alert('Pick a file first.');
+        var reader = new FileReader();
+        reader.onload = function(){ 
+          try{
+            var text = String(reader.result||'');
+            var arr = f.name.toLowerCase().endsWith('.json') ? JSON.parse(text) : parseCsvWithPhoto(text);
+            if(!arr || !arr.length) return alert('No rows parsed.');
+            setDataset(arr); clearStations(); allData = currentData(); view = allData.slice(0); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ alert('Dataset replaced.');
+          }catch(err){ alert('Failed: '+(err && err.message ? err.message : String(err))); }
+          finput.value='';
+        };
+        reader.readAsText(f);
+      }
+
+      function handleAppend(finput){
+        var f = finput.files[0]; if(!f) return alert('Pick a file first.');
+        var reader = new FileReader();
+        reader.onload = function(){
+          try{
+            var text = String(reader.result||'');
+            var arr = f.name.toLowerCase().endsWith('.json') ? JSON.parse(text) : parseCsvWithPhoto(text);
+            if(!arr || !arr.length) return alert('No rows parsed.');
+            var cur = currentData(); var map={}; for(var i=0;i<cur.length;i++){ map[cur[i].uid]=cur[i]; }
+            for(var j=0;j<arr.length;j++){ map[arr[j].uid]=arr[j]; }
+            var out=[]; for(var k in map){ if(map.hasOwnProperty(k)) out.push(map[k]); }
+            setDataset(out); allData = currentData(); view = allData.slice(0); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ alert('Dataset appended/merged.');
+          }catch(err){ alert('Failed: '+(err && err.message ? err.message : String(err))); }
+          finput.value='';
+        };
+        reader.readAsText(f);
+      }
+
+      document.getElementById('btnReplace').addEventListener('click', function(){ handleReplace(document.getElementById('fileReplace')); });
+      document.getElementById('btnAppend').addEventListener('click', function(){ handleAppend(document.getElementById('fileAppend')); });
+      document.getElementById('btnClearStations').addEventListener('click', function(){ clearStations(); refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel(); alert('All stations cleared.'); });
+      document.getElementById('btnClearAllStations').addEventListener('click', function(){ if(confirm('Clear ALL station assignments?')){ clearStations(); refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel(); } });
+      document.getElementById('btnClearDataset').addEventListener('click', function(){ if(confirm('Clear dataset? This also clears stations.')){ clearDataset(); clearStations(); allData=[]; view=[]; render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ } });
+      document.getElementById('btnResetAll').addEventListener('click', function(){ if(confirm('Reset ALL to embedded dataset?')){ var fb=JSON.parse(document.getElementById('embedded-data').textContent); setDataset(fb); clearStations(); allData=currentData(); view=allData.slice(0); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ } });
+
+      document.getElementById('applyQuarterBtn').addEventListener('click', function(){ var q = document.getElementById('quarterSel').value || 'Q2'; applyQuarterToAll(q); renderBoard(); renderPool(); renderUnusedPanel(); });
+      document.getElementById('cycleQuarterBtn').addEventListener('click', function(){ var sel=document.getElementById('quarterSel'); sel.value = sel.value==='Q1'?'Q2':(sel.value==='Q2'?'Q3':'Q1'); applyQuarterToAll(sel.value); renderBoard(); renderPool(); renderUnusedPanel(); });
+
+      function sortByFirstName(a,b){ var x=String(a.first_name||'').toLowerCase(), y=String(b.first_name||'').toLowerCase(); if(x<y) return -1; if(x>y) return 1; return 0; }
+      allData.sort(sortByFirstName);
+
+      // ---- Unused numeric stations UI ----
+      function allNumericStations(){
+        var out=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ out.push(g+'-'+i); }
+        }
+        return out;
+      }
+      function computeUnusedNumeric(){
+        var used = usedStationsSet();
+        var all = allNumericStations();
+        var arr=[];
+        for(var i=0;i<all.length;i++){
+          var v = all[i];
+          if(!used[v]) arr.push(v);
+        }
+        return arr;
+      }
+      function renderUnusedPanel(){
+
+      function gotoStation(code){
+        var slot = document.querySelector('.slot[data-station=\"'+code+'\"]');
+        if(!slot){ alert('Station '+code+' not found on board.'); return; }
+        slot.scrollIntoView({behavior:'smooth', block:'center'});
+        slot.classList.add('flash-hi');
+        setTimeout(function(){ slot.classList.remove('flash-hi'); }, 2000);
+      }
+      // delegate click on chips
+      document.addEventListener('click', function(e){
+        var chip = e.target.closest('.chip.btnlike[data-goto]');
+        if(!chip) return;
+        var code = chip.getAttribute('data-goto');
+        gotoStation(code);
+      });
+
+        var list = computeUnusedNumeric();
+        var elList = document.getElementById('unusedList');
+        var elCnt = document.getElementById('unusedCount');
+        if(!elList || !elCnt) return;
+        var html='';
+        for(var i=0;i<list.length;i++){
+          html += '<span class="chip btnlike" data-goto="'+list[i]+'">'+list[i]+'</span>';
+        }
+        elList.innerHTML = html || '<span class="small">All numeric stations are assigned.</span>';
+        elCnt.textContent = String(list.length);
+      }
+
+      view = allData.slice(0);
+      render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+
+
+      window.onStoreUpdate = function(key, value){
+        if(key==='ES_DATASET_V4'){ allData = currentData(); view = filter(document.getElementById('searchInput').value); render(view);
+      renderUnusedPanel();
+
+      // ---- Drag & Drop helpers ----
+      function imgFromItem(item){
+        var seed = item.barcode_id || item.employee_id || item.user_id || item.first_name || 'x';
+        if(item.photo_url && /^https?:\/\/.*/.test(item.photo_url)){ return item.photo_url; }
+        return ph(seed);
+      }
+      function getByUid(uid){
+        var data = allData; for(var i=0;i<data.length;i++){ if(data[i].uid===uid) return data[i]; }
+        return null;
+      }
+      function isNumeric(st){ return /^[1-4]-\d+$/.test(st||''); }
+
+      function renderPool(){
+
+      // ---- Scan / Search by Badge ID / Name / Login ----
+      function normId(s){ return String(s||'').toLowerCase().replace(/\s+/g,''); }
+      function findMatches(term){
+        term = term.trim();
+        if(!term) return [];
+        var t = normId(term);
+        var resExact = [], resLoose = [];
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var b = normId(x.barcode_id);
+          var u = normId(x.user_id);
+          var e = normId(x.employee_id);
+          var n = String(x.first_name||'').toLowerCase();
+          // Priority 1: exact id equality (barcode/user/employee)
+          if(t && (t===b || t===u || t===e)){ resExact.push(x); continue; }
+          // Priority 2: partials: name contains / user contains / emp id contains / badge contains
+          if(n.indexOf(term.toLowerCase())!==-1 || u.indexOf(t)!==-1 || e.indexOf(t)!==-1 || b.indexOf(t)!==-1){
+            resLoose.push(x);
+          }
+        }
+        return resExact.length ? resExact : resLoose;
+      }
+      function highlightOcc(uid){
+        var el = document.querySelector('.occ[data-uid="'+uid+'"]');
+        if(el){ el.classList.add('flash-hi'); setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800); }
+      }
+      function highlightEmpInPool(uid){
+        var pool = document.getElementById('poolList');
+        var el = pool.querySelector('.emp-item[data-uid="'+uid+'"]');
+        if(el){
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.classList.add('flash-hi');
+          setTimeout(function(){ el.classList.remove('flash-hi'); }, 1800);
+        }
+      }
+      function handleScan(){
+        var input = document.getElementById('scanSearch');
+        var term = input.value;
+        if(!term) return;
+        var matches = findMatches(term);
+        if(!matches.length){ alert('No employee matched "'+term+'".'); return; }
+        // ensure assigned can be visible in pool if needed
+        var showAssigned = document.getElementById('showAssigned');
+        if(showAssigned && !showAssigned.checked) { showAssigned.checked = true; renderPool(); }
+        // If single result, go directly
+        var x = matches[0];
+        var st = getStations()[x.uid];
+        if(st){
+          gotoStation(st);
+          highlightOcc(x.uid);
+        } else {
+          // filter pool to that term to narrow list
+          var empS = document.getElementById('empSearch');
+          if(empS){ empS.value = term; renderPool(); }
+          highlightEmpInPool(x.uid);
+        }
+        // Keep the scanned value to allow re-scan over same field; but you can clear if desired
+        // input.value='';
+        input.focus();
+      }
+      var _scan = document.getElementById('scanSearch');
+      _scan.addEventListener('keydown', function(e){ if(e.key==='Enter'){ handleScan(); } });
+
+        var showAssigned = document.getElementById('showAssigned').checked;
+        var q = document.getElementById('empSearch').value.toLowerCase();
+        var stMap = getStations();
+        var html='';
+        for(var i=0;i<allData.length;i++){
+          var x = allData[i];
+          var assigned = !!stMap[x.uid];
+          if(!showAssigned && assigned) continue;
+          if(q && String(x.first_name||'').toLowerCase().indexOf(q)===-1 && String(x.employee_id||'').toLowerCase().indexOf(q)===-1 && String(x.user_id||'').toLowerCase().indexOf(q)===-1 && String(x.barcode_id||'').toLowerCase().indexOf(q)===-1) continue;
+          var img = imgFromItem(x);
+          html += '<div class="emp-item" draggable="true" data-uid="'+esc(x.uid)+'">'+
+                    '<img class="emp-thumb" src="'+img+'" alt="">'+
+                    '<div><div class="emp-name">'+esc(x.first_name||'—')+'</div>'+
+                    '<div class="emp-meta">Emp: '+esc(x.employee_id||'—')+' · User: '+esc(x.user_id||'—')+'</div></div>'+
+                  '</div>';
+        }
+        var pool = document.getElementById('poolList'); pool.innerHTML = html || '<div class="small">No employees in list.</div>';
+        bindDraggables(pool);
+      }
+
+      function stationOrder(){
+        var arr=[];
+        for(var g=1; g<=4; g++){
+          var max = (g===4)?23:28;
+          for(var i=1;i<=max;i++){ arr.push(g+'-'+i); }
+        }
+        // then letter codes
+        var letters = EXTRA_CODES.slice(0);
+        for(var j=0;j<letters.length;j++){ arr.push(letters[j]); }
+        return arr;
+      }
+
+      function renderBoard(){
+        var stMap = getStations();
+        // invert: station -> [uids]
+        var inv = {}; var uid;
+        for(uid in stMap){
+          if(stMap.hasOwnProperty(uid)){
+            var st = stMap[uid];
+            if(!st) continue;
+            if(!inv[st]) inv[st]=[];
+            inv[st].push(uid);
+          }
+        }
+        var order = stationOrder();
+        var html='';
+        for(var i=0;i<order.length;i++){
+          var st = order[i];
+          var list = inv[st] || [];
+          var isNum = isNumeric(st);
+          html += '<div class="slot '+(isNum?'numeric':'letter')+'" data-station="'+st+'" data-drop="ST">'+
+                    '<div class="slot-title"><span>'+st+'</span>'+ (isNum?'<span class="smallmuted"></span>':'<span class="smallmuted">multi</span>') +'</div>'+
+                    '<div class="slot-body">';
+          if(list.length>0){
+            for(var j=0;j<list.length;j++){
+              var it = getByUid(list[j]); if(!it) continue;
+              var img = imgFromItem(it);
+              html += '<div class="occ" draggable="true" data-uid="'+esc(it.uid)+'">'+
+                        '<img src="'+img+'" alt=""><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'')+
+                        '<span class="x" title="Remove" data-remove="'+esc(it.uid)+'">×</span>'+
+                      '</div>';
+              // If numeric, only show the first; others (if existed) are still shown but dropping new ones will be blocked.
+            }
+          }
+          html +=   '</div></div>';
+        }
+        var board = document.getElementById('boardGrid'); board.innerHTML = html;
+        bindDrops();
+        bindDraggables(board);
+        // remove buttons
+        var xs = board.querySelectorAll('[data-remove]');
+        for(var k=0;k<xs.length;k++){
+          xs[k].addEventListener('click', function(e){
+            var uid = this.getAttribute('data-remove');
+            setStation(uid, '');
+            refreshAllSelects();
+            renderBoard();
+            renderPool();
+            renderUnusedPanel();
+          });
+        }
+      }
+
+      function bindDraggables(root){
+        var els = root.querySelectorAll('[draggable="true"]');
+        for(var i=0;i<els.length;i++){
+          els[i].addEventListener('dragstart', function(e){
+            var uid = this.getAttribute('data-uid');
+            e.dataTransfer.setData('text/es-uid', uid);
+            this.classList.add('dragging');
+          });
+          els[i].addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+          });
+        }
+      }
+
+      function bindDrops(){
+        var pool = document.getElementById('empPool');
+        pool.addEventListener('dragover', function(e){ e.preventDefault(); pool.classList.add('drop-hint'); });
+        pool.addEventListener('dragleave', function(e){ pool.classList.remove('drop-hint'); });
+        pool.addEventListener('drop', function(e){
+          e.preventDefault(); pool.classList.remove('drop-hint');
+          var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+          setStation(uid, '');
+          refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+        });
+
+        var slots = document.querySelectorAll('.slot[data-drop="ST"]');
+        for(var i=0;i<slots.length;i++){
+          (function(slot){
+            slot.addEventListener('dragover', function(e){ e.preventDefault(); slot.classList.add('drop-hint'); });
+            slot.addEventListener('dragleave', function(e){ slot.classList.remove('drop-hint'); });
+            slot.addEventListener('drop', function(e){
+              e.preventDefault(); slot.classList.remove('drop-hint');
+              var uid = e.dataTransfer.getData('text/es-uid'); if(!uid) return;
+              var st = slot.getAttribute('data-station');
+              var isNum = isNumeric(st);
+              // enforce uniqueness for numeric
+              if(isNum){
+                var map = getStations();
+                var owner = null;
+                for(var k in map){ if(map[k]===st && k!==uid){ owner = k; break; } }
+                if(owner){
+                  var ra = document.getElementById('reassignRule');
+                  if(ra && ra.checked){ setStation(owner, ''); } else { alert('This numeric station already has someone. Clear/move them first.'); return; }
+                }
+              }
+              setStation(uid, st);
+              refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel();
+            });
+          })(slots[i]);
+        }
+      }
+
+      // Hooks for search + checkbox
+      var _empSearch = document.getElementById('empSearch');
+      var _showAssigned = document.getElementById('showAssigned');
+      _empSearch.addEventListener('input', function(){ renderPool(); });
+      _showAssigned.addEventListener('change', function(){ renderPool(); });
+
+      // Initial render of DnD board + pool
+      renderBoard();
+      renderPool();
+ }
+        if(key==='ES_STATIONS_V4'){ refreshAllSelects(); renderUnusedPanel(); renderBoard(); renderPool(); }
+      };
+    </script>
+  </div>
+
+<script>
+/* ES_V44_LOCK_HELPERS */
+(function(){
+  var DKEY='ES_DISABLED_STATIONS_V1';
+  var CH=null; try{ CH = new BroadcastChannel('es-sync-v4'); }catch(e){ CH=null; }
+  function readJSON(k, fb){ try{ var t=localStorage.getItem(k); return t?JSON.parse(t):fb; }catch(e){ return fb; } }
+  function writeJSON(k, v){
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+    try{ localStorage.setItem('ES_SYNC_PING', String(Date.now())); }catch(e){}
+    try{ if(CH) CH.postMessage({type:k, value:v}); }catch(e){}
+  }
+  window.getDisabledStations = function(){
+    var a = readJSON(DKEY, []); if(!Array.isArray(a)) a=[];
+    var m={}; a.forEach(function(c){ if(c) m[String(c).toUpperCase()]=true; });
+    return m;
+  };
+  window.toggleStationDisabled = function(code){
+    code=String(code||'').toUpperCase(); if(!code) return;
+    var cur=getDisabledStations();
+    if(cur[code]) delete cur[code]; else cur[code]=true;
+    var arr=[]; for(var k in cur){ if(cur[k]) arr.push(k); }
+    writeJSON(DKEY, arr);
+  };
+  window.clearAllStationLocks = function(){ writeJSON(DKEY, []); };
+})();
+</script>
+
+
+<script>
+/* ES_V44_LOCK_APPLY */
+(function(){
+  function isDisabled(code){ var s=(window.getDisabledStations&&getDisabledStations())||{}; return !!s[String(code||'').toUpperCase()]; }
+  function findCodeFromTitle(titleEl){ var raw=(titleEl.textContent||'').trim(); return raw.split(/\s+/)[0]||''; }
+  function ensureToolbar(){
+    if(document.getElementById('lockToolbar')) return;
+    var host=document.createElement('div'); host.id='lockToolbar'; host.className='lock-toolbar';
+    host.innerHTML='<button id="btnUnlockAllStations" class="btn" type="button">Unlock All Stations</button>';
+    var anchor = document.getElementById('boardGrid') || document.body.firstElementChild;
+    if(anchor && anchor.parentNode){ anchor.parentNode.insertBefore(host, anchor); }
+    host.querySelector('#btnUnlockAllStations').addEventListener('click', function(){
+      window.clearAllStationLocks && window.clearAllStationLocks();
+      setTimeout(function(){ applyLockUI(document); }, 10);
+    });
+  }
+  function applyLockUI(root){
+    (root||document).querySelectorAll('#boardGrid .slot').forEach(function(slot){
+      var title = slot.querySelector('.slot-title'); if(!title) return;
+      var code = slot.getAttribute('data-code') || findCodeFromTitle(title) || '';
+      if(!code) return;
+      slot.setAttribute('data-code', code);
+      var off = isDisabled(code);
+      slot.classList.toggle('disabled', off);
+      var btn = title.querySelector('.lock-toggle');
+      if(!btn){
+        btn = document.createElement('button'); btn.type='button'; btn.className='lock-toggle'; title.appendChild(btn);
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault(); ev.stopPropagation();
+          window.toggleStationDisabled && window.toggleStationDisabled(code);
+          setTimeout(function(){ applyLockUI(document); }, 10);
+        });
+      }
+      btn.classList.toggle('off', !off);
+      btn.innerHTML = off ? '🔒 <b>Locked</b>' : '🔓 <b>Lock</b>';
+    });
+  }
+  function installDnDGuards(){
+    var grid=document.getElementById('boardGrid'); if(!grid) return;
+    grid.addEventListener('dragover', function(e){
+      var slot = e.target && e.target.closest && e.target.closest('.slot');
+      if(slot && slot.classList.contains('disabled')){ e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    grid.addEventListener('drop', function(e){
+      var slot = e.target && e.target.closest && e.target.closest('.slot');
+      if(slot && slot.classList.contains('disabled')){
+        e.preventDefault(); e.stopPropagation();
+        alert('This station is locked. Unlock it or use "Unlock All Stations".');
+      }
+    }, true);
+  }
+  function wrapRender(){
+    if(typeof window.renderBoard==='function' && !window.renderBoard._lockWrap){
+      var _rb = window.renderBoard;
+      window.renderBoard = function(){
+        var r=_rb.apply(this, arguments);
+        try{ ensureToolbar(); applyLockUI(document); }catch(e){};
+        return r;
+      };
+      window.renderBoard._lockWrap = true;
     }
-    fetchData();
-  </script>
+  }
+  document.addEventListener('DOMContentLoaded', function(){ try{ ensureToolbar(); installDnDGuards(); applyLockUI(document); wrapRender(); }catch(e){} });
+  window.addEventListener('storage', function(ev){ if(ev && ev.key==='ES_DISABLED_STATIONS_V1') setTimeout(function(){ applyLockUI(document); }, 30); });
+  try{ var CH=new BroadcastChannel('es-sync-v4'); CH.onmessage=function(m){ if(m&&m.data&&m.data.type==='ES_DISABLED_STATIONS_V1') setTimeout(function(){ applyLockUI(document); }, 30); }; }catch(e){}
+})();
+</script>
+
+<!-- ES_SINGLE_SEARCH_ONLY -->
+<script>
+(function(){
+  function hideDupAndSync(){
+    var main = document.getElementById('searchInput');
+    var dup  = document.getElementById('empSearch');
+    if(!main) return;
+    if(dup){
+      // Hide duplicate search field (keep layout intact)
+      dup.style.display = 'none';
+      // forward typing from main to duplicated search so existing listeners still work
+      function fwd(){ 
+        dup.value = main.value; 
+        try { dup.dispatchEvent(new Event('input', {bubbles:true})); } catch(e){}
+        try { dup.dispatchEvent(new Event('change', {bubbles:true})); } catch(e){}
+      }
+      if(!main.dataset.esSync){
+        ['input','change'].forEach(function(ev){ main.addEventListener(ev, fwd); });
+        main.dataset.esSync = '1';
+      }
+      // run once to sync current value
+      fwd();
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hideDupAndSync);
+  else hideDupAndSync();
+})();
+</script>
+
+
+<script>
+// === ES_APPLY_LOCK_RULE (Apply mapping: skip locked; use adjacent empty only) ===
+(function(){
+  function isNum(code){ return /^\d-\d+$/.test(code||''); }
+  function parse(code){ var m=/^([1-4])-(\d+)$/.exec(code||''); return m? {g:parseInt(m[1],10), n:parseInt(m[2],10)} : null; }
+  function gmax(g){ try{ return groupMax(g); }catch(e){ return 28; } }
+  function ownerOf(code){
+    try{ var map = getStations(); for(var k in map){ if(map[k]===code){ return k; } } }catch(e){}
+    return null;
+  }
+  // Robust isLocked: prefer existing isDisabled(); else read from localStorage key used by lock UI.
+  function isLocked(code){
+    try{ if(typeof isDisabled==='function') return !!isDisabled(code); }catch(e){}
+    try{
+      var arr = JSON.parse(localStorage.getItem('ES_DISABLED_STATIONS_V1')||'[]');
+      var set = {}; for(var i=0;i<arr.length;i++){ set[String(arr[i]).toUpperCase()] = true; }
+      return !!set[String(code||'').toUpperCase()];
+    }catch(e){}
+    return false;
+  }
+  function emptyAndUnlocked(code){
+    if(!isNum(code)) return true;
+    if(isLocked(code)) return false;
+    return ownerOf(code) == null;
+  }
+  function adjacentEmpty(code){
+    var p = parse(code); if(!p) return null;
+    var max = gmax(p.g);
+    var prev = p.g + '-' + (p.n-1);
+    if(p.n > 1 && emptyAndUnlocked(prev)) return prev;
+    var next = p.g + '-' + (p.n+1);
+    if(p.n < max && emptyAndUnlocked(next)) return next;
+    return null;
+  }
+
+  // Override applyQuarterToAll with lock-aware adjacent-empty rule
+  var __orig_apply = window.applyQuarterToAll;
+  window.applyQuarterToAll = function(targetQ){
+    try {
+      var cur = getStations();
+      var items = [];
+      for(var uid in cur){ if(cur.hasOwnProperty(uid) && cur[uid]){
+        items.push({ uid: uid, st: cur[uid] });
+      } }
+      // Stable order: numeric first then letters to avoid jitter
+      function key(st){
+        var m = /^([1-4])-(\d+)$/.exec(st||'');
+        if(m){ return '0-'+m[1].padStart(2,'0')+'-'+String(m[2]).padStart(3,'0'); }
+        return '1-'+String(st||'');
+      }
+      items.sort(function(a,b){ var ka=key(a.st), kb=key(b.st); return ka<kb? -1 : (ka>kb? 1 : 0); });
+
+      // Apply mapping
+      for(var i=0;i<items.length;i++){
+        var uid = items[i].uid;
+        var st  = items[i].st;
+        var desired = mapStationToQuarter(st, targetQ);
+
+        if(isNum(desired)){
+          // If locked: only place in adjacent empty (prev, else next), otherwise skip
+          if(isLocked(desired)){
+            var alt = adjacentEmpty(desired);
+            if(!alt) continue; // no placement
+            desired = alt;
+          }
+          // If destination is occupied, we DO NOT reassign/replace here; only allow if empty
+          if(ownerOf(desired) && ownerOf(desired)!==uid){
+            // try adjacent empty instead of replacing
+            var alt2 = adjacentEmpty(desired);
+            if(!alt2) continue;
+            desired = alt2;
+            // safety: ensure still empty & unlocked
+            if(ownerOf(desired) || isLocked(desired)) continue;
+          }
+        }
+
+        setStation(uid, desired);
+      }
+
+      try{ refreshAllSelects(); renderBoard(); renderPool(); renderUnusedPanel(); }catch(e){}
+    } catch(e) {
+      // fallback gracefully
+      if(typeof __orig_apply === 'function'){ try{ __orig_apply(targetQ); }catch(_e){} }
+    }
+  };
+})();
+</script>
+
 </body>
 </html>

@@ -1,25 +1,172 @@
+
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AddLS</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add LS — Bulk Append with Libershare</title>
+  <style>
+  :root{--border:#e5e7eb;--muted:#6b7280;--danger:#7f1d1d;}
+  *{box-sizing:border-box} body{margin:0;background:#fff;color:#111827;font-family:system-ui,Segoe UI,Roboto,Arial}
+  .container{max-width:880px;margin:0 auto;padding:1rem}
+  h1{font-size:1.5rem;margin:0 0 .5rem}
+  .small{font-size:.875rem;color:var(--muted)}
+  .controls{display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0}
+  .form-control{width:100%;min-height:38px;padding:.5rem .7rem;border:1px solid var(--border);border-radius:.375rem}
+  .btn{display:inline-block;padding:.5rem .9rem;border-radius:.375rem;border:1px solid var(--border);background:#fff;cursor:pointer}
+  .btn-primary{background:#0d6efd;border-color:transparent;color:#fff}
+  .btn-danger{background:#ef4444;border-color:transparent;color:#fff}
+  .card{border:1px solid var(--border);border-radius:.6rem;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .card .card-body{padding:.8rem}
+  .list{max-height:320px;overflow:auto;border-top:1px dashed var(--border);padding-top:.5rem;margin-top:.5rem}
+  .item{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.45rem .3rem;border-bottom:1px dashed #eef2f7}
+  .row{display:flex;align-items:center;gap:.6rem}
+  .thumb{width:42px;height:42px;border-radius:8px;border:1px solid var(--border);object-fit:cover;background:#f3f4f6}
+  .name{font-weight:700}
+  .meta{font-size:.82rem;color:#6b7280}
+  .badge-ls{display:inline-block;background:#7f1d1d;color:#fff;border:1px solid #5b0f0f;padding:.12rem .45rem;border-radius:.4rem;font-size:.72rem;font-weight:800;margin-left:.35rem}
+  .pill{display:inline-block;background:#f1f5f9;border:1px solid #cbd5e1;color:#0f172a;padding:.1rem .45rem;border-radius:.5rem;font-size:.72rem;margin-left:.35rem}
+  textarea{width:100%;min-height:160px;resize:vertical}
+  .spacer{flex:1}
+  </style>
 </head>
-<body class="p-4">
-  <h1>AddLS</h1>
-  <div id="content"></div>
-  <script>
-    async function fetchData() {
-      const [ds, st] = await Promise.all([
-        fetch("data/dataset.json").then(r => r.json()),
-        fetch("data/stations.json").then(r => r.json())
-      ]);
-      document.getElementById("content").innerText = JSON.stringify({dataset:ds, stations:st}, null, 2);
-    }
-    fetchData();
-  </script>
+<body>
+  <div class="container">
+    <h1>Add LS <span class="small">— bulk append via list/array; adds <strong>Libershare</strong> too</span></h1>
+    <div class="controls">
+      <a class="btn" href="StationSetup.html" target="_blank">Open Setup</a>
+      <a class="btn" href="StationDisplay.html" target="_blank">Open Display</a>
+      <a class="btn" href="DataManager.html" target="_blank">Open Data Manager</a>
+      <a class="btn" href="index.html">Home</a>
+      <span class="spacer"></span>
+      <button class="btn" id="btnLoadSample" type="button">Sample</button>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="controls">
+          <input id="libershareInput" class="form-control" placeholder="Libershare (optional — applied to all added LS)">
+          <button class="btn" id="btnSetLibershare" type="button">Apply Libershare</button>
+        </div>
+        <div class="small">Input — paste either a JSON array <code>["login1","login2"]</code> or one login per line. Only <strong>login</strong> is required. All other fields set automatically (employee_id=<code>0</code>, barcode_id=<code>0</code>, employee_type=<code>LS</code>, first_name=<code>login</code>, user_id=<code>login</code>, photo_url from login, <code>libershare</code> if provided).</div>
+        <textarea id="txt" class="form-control" placeholder='["jdoe","asmith","bjohnson"] or newline list'></textarea>
+        <div class="controls">
+          <button class="btn" id="btnPreview" type="button">Preview</button>
+          <button class="btn btn-primary" id="btnAppend" type="button">Append LS to dataset</button>
+          <button class="btn btn-danger" id="btnClearPreview" type="button">Clear preview</button>
+          <span id="status" class="small"></span>
+        </div>
+        <div id="preview" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const STORE_KEY='ES_DATASET_V4';
+var ES_CH=null; try{ ES_CH = new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH = null; }
+
+function readJSON(key, fallback){ try{ var t=localStorage.getItem(key); return t?JSON.parse(t):fallback; }catch(e){ return fallback; } }
+function writeJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ alert('LocalStorage write failed: '+(e&&e.message?e.message:e)); }
+  try{ if(ES_CH) ES_CH.postMessage({type:key, value:val}); }catch(e){}
+}
+function getDataset(){ var ds=readJSON(STORE_KEY, []); return Array.isArray(ds)?ds:[]; }
+function setDataset(arr){ writeJSON(STORE_KEY, arr||[]); }
+
+var CURRENT_LIBERSHARE = '';
+
+document.getElementById('btnSetLibershare').addEventListener('click', function(){
+  CURRENT_LIBERSHARE = String(document.getElementById('libershareInput').value||'').trim();
+  document.getElementById('status').textContent = CURRENT_LIBERSHARE ? ('Libershare: '+CURRENT_LIBERSHARE) : 'Libershare cleared';
+});
+
+function parseLogins(inputText){
+  var t = String(inputText||'').trim();
+  if(!t) return [];
+  try{
+    var arr = JSON.parse(t);
+    if(Array.isArray(arr)) return arr.map(x => String(x||'').trim()).filter(Boolean);
+  }catch(e){ /* not JSON */ }
+  return t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+}
+
+function makeLS(login){
+  var lg = String(login||'').trim();
+  return {
+    uid: 'ls:'+lg.toLowerCase(),
+    employee_id: '0',
+    user_id: lg,
+    first_name: lg,
+    employee_type: 'LS',
+    barcode_id: '0',
+    photo_url: 'https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid='+encodeURIComponent(lg),
+    libershare: CURRENT_LIBERSHARE || ''
+  };
+}
+
+function canonicalize(rec){
+  if(!rec || !rec.uid){
+    var lg = (rec && rec.user_id ? String(rec.user_id).toLowerCase() : '');
+    rec.uid = lg ? ('ls:'+lg) : ('row_'+Math.random().toString(36).slice(2,8));
+  }
+  return rec;
+}
+function uniqMerge(baseArr, addArr){
+  var map = {}; (baseArr||[]).forEach(r => { if(r && r.uid) map[r.uid]=r; });
+  (addArr||[]).forEach(r => { r=canonicalize(r); map[r.uid]=r; });
+  var out=[]; for(var k in map){ if(map.hasOwnProperty(k)) out.push(map[k]); }
+  return out;
+}
+
+function el(tag, cls, html){ var x=document.createElement(tag); if(cls) x.className=cls; if(html!==undefined) x.innerHTML=html; return x; }
+
+function showPreview(list){
+  var box = document.getElementById('preview');
+  box.innerHTML = '';
+  (list||[]).forEach(function(r){
+    var item = el('div','item');
+    var left = el('div','row');
+    var img = el('img','thumb'); img.src = r.photo_url;
+    var text = el('div');
+    var extra = r.libershare ? (' <span class="pill">'+r.libershare+'</span>') : '';
+    text.innerHTML = '<div class="name">'+r.first_name+' <span class="badge-ls">LS</span>'+extra+'</div><div class="meta">'+r.user_id+'</div>';
+    left.appendChild(img); left.appendChild(text);
+    var right = el('div','right', '<code>'+r.uid+'</code>');
+    item.appendChild(left); item.appendChild(right);
+    box.appendChild(item);
+  });
+}
+
+function setStatus(t){ var s=document.getElementById('status'); if(s) s.textContent=t; }
+
+document.getElementById('btnLoadSample').addEventListener('click', function(){
+  document.getElementById('libershareInput').value = 'E2S';
+  CURRENT_LIBERSHARE = 'E2S';
+  document.getElementById('txt').value = '["jdoe","asmith","bjohnson"]';
+  setStatus('Loaded sample array + Libershare=E2S');
+});
+
+document.getElementById('btnPreview').addEventListener('click', function(){
+  var arr = parseLogins(document.getElementById('txt').value);
+  var made = arr.map(makeLS);
+  showPreview(made);
+  setStatus('Preview: '+made.length+' LS');
+});
+
+document.getElementById('btnClearPreview').addEventListener('click', function(){
+  document.getElementById('preview').innerHTML='';
+  setStatus('Preview cleared.');
+});
+
+document.getElementById('btnAppend').addEventListener('click', function(){
+  var arr = parseLogins(document.getElementById('txt').value);
+  if(!arr.length){ alert('Enter at least one login'); return; }
+  var made = arr.map(makeLS);
+  var cur = getDataset();
+  var out = uniqMerge(cur, made);
+  setDataset(out);
+  showPreview(made);
+  setStatus('Appended '+made.length+' LS. Total now: '+out.length+'. If Setup page is open, it updates immediately.');
+});
+</script>
 </body>
 </html>
