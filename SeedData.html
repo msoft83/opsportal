@@ -1,19 +1,46 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SeedData</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d6efd">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="p-4">
-  <h1>SeedData</h1><p>Page under construction.</p>
-  <script>
-  const dsUrl = "https://raw.githubusercontent.com/msoft83/opsportal/main/data/dataset.json";
-  const stUrl = "https://raw.githubusercontent.com/msoft83/opsportal/main/data/stations.json";
-  
-  </script>
-</body>
-</html>
+<!doctype html><html lang="en"><head>
+  <script src="_shared/remote-bridge.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES Seed — Fix No Data</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#f8fafc;color:#0f172a}
+.container{max-width:720px;margin:40px auto;padding:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px}
+.btn{display:inline-block;padding:.55rem .9rem;border-radius:.55rem;border:1px solid #1d4ed8;background:#2563eb;color:#fff;text-decoration:none}
+pre{background:#0b1020;color:#e5e7eb;padding:10px;border-radius:8px;overflow:auto;max-height:320px}
+.small{color:#6b7280;font-size:.9rem}
+</style>
+</head><body>
+<div class="container">
+  <h1>Seed Local Data — ES_DATASET_V4 / ES_STATIONS_V4</h1>
+  <div class="card">
+    <p class="small">Click the button below to insert sample data so StationDisplay shows cards immediately. You can later replace with your real data via <b>DataManager.html</b>.</p>
+    <button class="btn" id="seed">Seed Now</button>
+    <span id="status" class="small"></span>
+    <h3>Preview</h3>
+    <pre id="prev"></pre>
+  </div>
+</div>
+<script>
+const SAMPLE_DS = [
+  { uid:"U1001", user_id:"mohhafha", first_name:"Mohamed",  employee_id:"E1001", training_list:["Safety","Forklift","Packing"] },
+  { uid:"U1002", user_id:"sara.a",   first_name:"Sara",     employee_id:"E1002", training_list:["Safety","ICQA"] },
+  { uid:"U1003", user_id:"john.d",   first_name:"John",     employee_id:"E1003", training_list:["ICQA","Inbound","Packing"] }
+];
+const SAMPLE_ST = { "U1001":"1-01", "U1002":"1-02", "U1003":"2-05" };
+
+function seed(){
+  localStorage.setItem("ES_DATASET_V4", JSON.stringify(SAMPLE_DS));
+  localStorage.setItem("ES_STATIONS_V4", JSON.stringify(SAMPLE_ST));
+  document.getElementById('status').textContent = " — Seeded! Open StationDisplay.html to view.";
+  try{
+    const bc = new BroadcastChannel('es-sync-v4');
+    bc.postMessage({type:'ES_DATASET_V4', value:SAMPLE_DS});
+    bc.postMessage({type:'ES_STATIONS_V4', value:SAMPLE_ST});
+  }catch(e){}
+  document.getElementById('prev').textContent = JSON.stringify({dataset:SAMPLE_DS, stations:SAMPLE_ST}, null, 2);
+}
+document.getElementById('seed').onclick = seed;
+document.getElementById('prev').textContent = JSON.stringify({dataset:SAMPLE_DS, stations:SAMPLE_ST}, null, 2);
+</script>
+</body></html>
