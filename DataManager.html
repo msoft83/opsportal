@@ -15,6 +15,7 @@ Notes:
 <html lang="en" dir="ltr">
 <head>
   <script src="_shared/remote-bridge.js"></script>
+<script src="_shared/remote-hardlock.js"></script>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Data Manager — Dataset + Training Merge (v4)</title>
   <style>
@@ -35,7 +36,7 @@ pre{white-space:pre-wrap;word-break:break-word;border:1px solid var(--border);bo
 .badge{display:inline-block;padding:.18rem .45rem;border-radius:.4rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
   </style>
 
-  <script src="_shared/remote-config.js"></script>
+<script src="_shared/remote-config.js"></script>
 </head>
 <body>
   <div class="container">
@@ -82,12 +83,7 @@ pre{white-space:pre-wrap;word-break:break-word;border:1px solid var(--border);bo
     </div>
 
     <div class="controls">
-      <button class="btn" id="btnExportJSON">Export dataset JSON</button>
-<!-- Export Training button (added) -->
-<button id="btnExportTraining" type="button" class="btn btn-outline-primary ms-2" title="Export training.json">
-  Export Training
-</button>
-
+      <button class="btn" id="btnExportJSON">Export dataset JSON</button><button id="btnExportTraining" type="button" class="btn btn-outline-primary ms-2" title="Export training.json">training.json</button>
       <button class="btn" id="btnExportCSV">Export dataset CSV</button>
       <span id="status" class="small"></span>
     </div>
@@ -503,166 +499,7 @@ refreshPreview();
 })();
 </script>
 
-<script>
-(function(){
-  function saveAsFile(filename, dataObj){
-    try{
-      const blob = new Blob([JSON.stringify(dataObj, null, 2)], {type:"application/json"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-    }catch(e){ console.error("saveAsFile failed", e); alert("Download failed: " + e.message); }
-  }
-  async function getDatasetSafe(){
-    try{ if(window.currentDataset){ const ds = await window.currentDataset(); return Array.isArray(ds)?ds:[]; } }
-    catch(e){ console.warn(e); }
-    return [];
-  }
-  function deriveTrainingFromDataset(ds){
-    const rows = [];
-    (ds||[]).forEach(p=>{
-      const trainings = Array.isArray(p.training_list) ? p.training_list : [];
-      const empId = p.employee_id || p["Employee ID"] || p.EmployeeID || p.uid || p.user_id || "";
-      trainings.forEach(t=>{
-        if(t!=null && String(t).trim()!==""){
-          rows.push({ "Employee ID": String(empId), "Training": String(t) });
-        }
-      });
-    });
-    return rows;
-  }
-  async function exportTraining(){
-    let rows = [];
-    if(Array.isArray(window.__CURRENT_TRAINING_ROWS__) && window.__CURRENT_TRAINING_ROWS__.length){
-      rows = window.__CURRENT_TRAINING_ROWS__;
-    }else{
-      const ds = await getDatasetSafe();
-      rows = deriveTrainingFromDataset(ds);
-    }
-    if(!rows.length){ alert("No training data found to export."); return; }
-    try{
-      if(window.ESRemote && ESRemote.config && ESRemote.config.token){
-        await ESRemote.setTraining(rows);
-        alert("training.json has been updated in the GitHub repo.");
-      }else{
-        saveAsFile("training.json", rows);
-      }
-    }catch(e){
-      console.error(e);
-      saveAsFile("training.json", rows);
-      alert("Remote write failed; downloaded training.json for manual upload.");
-    }
-  }
-  function bind(){ const btn = document.getElementById("btnExportTraining"); if(btn) btn.addEventListener("click", exportTraining); }
-  if(document.readyState==="complete"||document.readyState==="interactive"){ bind(); } else { document.addEventListener("DOMContentLoaded", bind); }
-})();
-</script>
-
-
-<script>
-(function(){
-  // Reuse existing exportTraining if available; otherwise define a minimal one
-  if (typeof window.exportTraining !== "function") {
-    window.exportTraining = (async function(){
-      async function getDatasetSafe(){
-        try{ if(window.currentDataset){ const ds = await window.currentDataset(); return Array.isArray(ds)?ds:[]; } }catch(e){}
-        return [];
-      }
-      function deriveTrainingFromDataset(ds){
-        const rows = [];
-        (ds||[]).forEach(p=>{
-          const trainings = Array.isArray(p.training_list) ? p.training_list : [];
-          const empId = p.employee_id || p["Employee ID"] || p.EmployeeID || p.uid || p.user_id || "";
-          trainings.forEach(t=>{
-            if(t!=null && String(t).trim()!==""){
-              rows.push({ "Employee ID": String(empId), "Training": String(t) });
-            }
-          });
-        });
-        return rows;
-      }
-      function saveAsFile(filename, dataObj){
-        const blob = new Blob([JSON.stringify(dataObj, null, 2)], {type:"application/json"});
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
-      }
-      let rows = Array.isArray(window.__CURRENT_TRAINING_ROWS__) && window.__CURRENT_TRAINING_ROWS__.length
-        ? window.__CURRENT_TRAINING_ROWS__ : deriveTrainingFromDataset(await getDatasetSafe());
-      if(!rows.length){ alert("No training data found to export."); return; }
-      try{
-        if(window.ESRemote && ESRemote.config && ESRemote.config.token){
-          await ESRemote.setTraining(rows);
-          alert("training.json has been updated in the GitHub repo.");
-        }else{
-          saveAsFile("training.json", rows);
-        }
-      }catch(e){
-        console.error(e);
-        saveAsFile("training.json", rows);
-        alert("Remote write failed; downloaded training.json for manual upload.");
-      }
-    });
-  }
-
-  function addTrainingPill(){
-    // Find the export toolbar by locating the dataset.json pill
-    const candidates = Array.from(document.querySelectorAll("button,a,span"));
-    let datasetBtn = candidates.find(el => /dataset\.json/i.test(el.textContent||""));
-    if(!datasetBtn){
-      // Try another heuristic: look for stations.json then use its parent
-      datasetBtn = candidates.find(el => /stations\.json/i.test(el.textContent||""));
-    }
-    let container = datasetBtn ? (datasetBtn.parentElement || document.body) : document.body;
-
-    // Don't add twice
-    if(document.getElementById("btnExportTrainingPill")) return;
-
-    // Clone styling from dataset pill if possible
-    let btn = document.createElement(datasetBtn ? datasetBtn.tagName : "button");
-    btn.id = "btnExportTrainingPill";
-    btn.textContent = "training.json";
-
-    // Copy classes from dataset pill to keep same visual style
-    if(datasetBtn && datasetBtn.classList && datasetBtn.classList.length){
-      btn.className = datasetBtn.className;
-    }else{
-      // Reasonable default styles (Bootstrap-like)
-      btn.className = "btn btn-outline-primary ms-2";
-      btn.style.borderRadius = "9999px"; // pill
-    }
-
-    btn.addEventListener("click", function(ev){
-      ev.preventDefault();
-      if (typeof window.exportTraining === "function") {
-        window.exportTraining();
-      }
-    });
-
-    // Insert after the stations.json pill if present, else append after dataset.json
-    let stationsBtn = candidates.find(el => /stations\.json/i.test(el.textContent||""));
-    if(stationsBtn && stationsBtn.parentElement){
-      stationsBtn.parentElement.insertBefore(btn, stationsBtn.nextSibling);
-    }else if(datasetBtn && datasetBtn.parentElement){
-      datasetBtn.parentElement.insertBefore(btn, datasetBtn.nextSibling);
-    }else{
-      container.appendChild(btn);
-    }
-  }
-
-  if(document.readyState === "complete" || document.readyState === "interactive"){
-    setTimeout(addTrainingPill, 0);
-  }else{
-    document.addEventListener("DOMContentLoaded", addTrainingPill);
-  }
-})();
-</script>
+<script>(function(){function s(n,d){const b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}async function g(){try{if(window.currentDataset){const d=await window.currentDataset();return Array.isArray(d)?d:[];}}catch(e){}return [];}function d(ds){const r=[];(ds||[]).forEach(p=>{const T=Array.isArray(p.training_list)?p.training_list:[];const e=p.employee_id||p["Employee ID"]||p.EmployeeID||p.uid||p.user_id||"";T.forEach(t=>{if(t!=null&&String(t).trim()!==""){r.push({"Employee ID":String(e),"Training":String(t)});}});});return r;}async function x(){let r=Array.isArray(window.__CURRENT_TRAINING_ROWS__)&&window.__CURRENT_TRAINING_ROWS__.length?window.__CURRENT_TRAINING_ROWS__:d(await g());if(!r.length){alert("No training data found to export.");return;}try{if(window.ESRemote&&ESRemote.config&&ESRemote.config.token){await ESRemote.setTraining(r);alert("training.json has been updated in the GitHub repo.");}else{s("training.json",r);}}catch(e){console.error(e);s("training.json",r);alert("Remote write failed; downloaded training.json for manual upload.");}}function b(){const el=document.getElementById("btnExportTraining");if(el)el.addEventListener("click",x);}if(document.readyState==="complete"||document.readyState==="interactive"){b();}else{document.addEventListener("DOMContentLoaded",b);} })();</script>
 
 </body>
 </html>
