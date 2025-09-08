@@ -34,6 +34,8 @@ h1{font-size:1.5rem;margin:0 0 1rem}.small{font-size:.875rem;color:var(--muted)}
 pre{white-space:pre-wrap;word-break:break-word;border:1px solid var(--border);border-radius:.6rem;padding:.6rem;background:#fff;max-height:380px;overflow:auto}
 .badge{display:inline-block;padding:.18rem .45rem;border-radius:.4rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
   </style>
+
+  <script src="_shared/remote-config.js"></script>
 </head>
 <body>
   <div class="container">
@@ -429,6 +431,70 @@ refreshPreview();
     exportHolder:   () => downloadBlob(FILES.holder,   readLS(KEYS.HOLDER, {})),
     exportZipAll
   };
+})();
+</script>
+
+<!-- Minimal "Refresh from GitHub" button (no other changes) -->
+<script>
+(function(){
+  function addRefreshBtn(){
+    const host = document.querySelector('.controls');
+    if(!host || document.getElementById('btnRefreshSource')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnRefreshSource';
+    btn.type = 'button';
+    btn.className = 'btn';
+    btn.textContent = 'Refresh from GitHub';
+    host.insertBefore(btn, host.firstChild);
+    btn.addEventListener('click', refreshFromGitHub);
+  }
+
+  const DATA_BASE = "https://msoft83.github.io/opsportal/data/";
+  const FILES = { dataset:"dataset.json", stations:"stations.json", holder:"holder_cache.json" };
+  const KEYS  = { DATASET:"ES_DATASET_V4", STATIONS:"ES_STATIONS_V4", HOLDER:"ES_HOLDER_CACHE_V1" };
+
+  async function getJSON(url){
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { "Pragma":"no-cache", "Cache-Control":"no-cache" }
+    });
+    if(!res.ok) throw new Error("Fetch failed: " + url + " — " + res.status);
+    return res.json();
+  }
+
+  function writeLS(key, obj){
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch(e){}
+    try { const bc = new BroadcastChannel('es-sync-v4'); bc.postMessage({ type:key, value:obj }); } catch(e){}
+  }
+
+  async function refreshFromGitHub(){
+    try{
+      const [ds, st, hc] = await Promise.all([
+        getJSON(DATA_BASE + FILES.dataset).catch(()=>[]),
+        getJSON(DATA_BASE + FILES.stations).catch(()=>({})),
+        getJSON(DATA_BASE + FILES.holder).catch(()=>({})),
+      ]);
+      writeLS(KEYS.DATASET, Array.isArray(ds)?ds:[]);
+      writeLS(KEYS.STATIONS, st && typeof st==="object" ? st : {});
+      writeLS(KEYS.HOLDER,   hc && typeof hc==="object" ? hc : {});
+
+      try{
+        if (typeof refreshPreview === "function") refreshPreview();
+        const el = document.getElementById('previewDS') || document.getElementById('preview');
+        if (el) { el.textContent = JSON.stringify((Array.isArray(ds)?ds:[]).slice(0,40), null, 2); }
+      }catch{}
+
+      try{ window.dispatchEvent(new CustomEvent('es-remote-refreshed', { detail:{ ds_len:(ds||[]).length } })); }catch{}
+      alert("Refreshed from GitHub /data/ successfully.");
+    }catch(e){
+      alert("Refresh error: " + e.message);
+    }
+  }
+
+  try { if (window.ES_REMOTE) window.ES_REMOTE.refreshFromRemote = refreshFromGitHub; } catch {}
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addRefreshBtn);
+  else addRefreshBtn();
 })();
 </script>
 </body>
