@@ -1,0 +1,693 @@
+<!-- =========================
+Training Merge Update — ES_DATASET_V4 (Employee ID join)
+Author: ChatGPT
+Notes:
+- Adds support to upload a Training file (CSV/JSON) and merge it into the shared dataset by Employee ID.
+- Adds a new field per record: `training_list` (Array<string>) — unique, sorted.
+- Updates only the matching row (same Employee ID). Non‑matching rows are untouched.
+- Data Manager: new UI block “Training Merge” (Replace/Append training), live preview, and export buttons.
+- Station Setup & Station Display: read and show a small pill with the # of trainings; hover shows list.
+- Keys used: ES_DATASET_V4 (dataset), ES_STATIONS_V4 (stations), ES_HOLDER_CACHE_V1 (holder cache)
+========================== -->
+
+<!-- ========= DataManager.html (FULL REPLACEMENT) ========= -->
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <script src="_shared/remote-bridge.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Manager — Dataset + Training Merge (v4)</title>
+  <style>
+:root{--border:#e5e7eb;--body:#111827;--muted:#6b7280;--primary:#0d6efd;--light:#f8fafc}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:#111827;font-family:system-ui,Segoe UI,Roboto,Arial}
+.container{max-width:1120px;margin:0 auto;padding:1rem}
+h1{font-size:1.5rem;margin:0 0 1rem}.small{font-size:.875rem;color:var(--muted)}
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.form-control,.form-select{padding:.45rem .7rem;border:1px solid var(--border);border-radius:.375rem;background:#fff;min-height:36px}
+.btn{display:inline-block;padding:.45rem .9rem;border-radius:.375rem;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn-primary{background:#0d6efd;border-color:transparent;color:#fff}
+.btn-danger{background:#ef4444;color:#fff;border-color:transparent}
+.card{background:#fff;border:1px solid var(--border);border-radius:.6rem;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.card-body{padding:.6rem .7rem}
+.filebox{display:flex;align-items:center;gap:.5rem;border:1px dashed var(--border);padding:.4rem .6rem;border-radius:.5rem;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+pre{white-space:pre-wrap;word-break:break-word;border:1px solid var(--border);border-radius:.6rem;padding:.6rem;background:#fff;max-height:380px;overflow:auto}
+.badge{display:inline-block;padding:.18rem .45rem;border-radius:.4rem;background:#eef2ff;color:#3730a3;font-size:.75rem}
+  </style>
+
+  <script src="_shared/remote-config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Data Manager <span class="small">— shared dataset + training merge</span></h1>
+
+    <div class="controls">
+      <div class="filebox">
+        <input id="fileReplace" type="file" accept=".csv,.json">
+        <button class="btn btn-primary" id="btnReplace">Replace dataset</button>
+        <input id="fileAppend" type="file" accept=".csv,.json">
+        <button class="btn" id="btnAppend">Append</button>
+      </div>
+      <button class="btn btn-danger" id="btnClearDataset">Clear Dataset</button>
+      <button class="btn" id="btnClearStations">Clear Stations</button>
+      <button class="btn" id="btnResetAll">Reset ALL to embedded</button>
+      <a class="btn" href="StationSetup.html">Open Setup</a>
+      <a class="btn" href="StationDisplay.html">Open Display</a>
+      <a class="btn" href="index.html">Home</a>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <strong>Training Merge</strong> <span class="small">— Upload a Training file (CSV/JSON). Expected columns: <code>Employee ID</code> and <code>Training</code> (one row per employee per training). We will aggregate into <code>training_list</code> array and update only matching employees by Employee ID.</span>
+        <div class="controls" style="margin-top:.5rem">
+          <div class="filebox">
+            <input id="fileTraining" type="file" accept=".csv,.json">
+            <button class="btn" id="btnPreviewTraining" type="button">Preview</button>
+            <button class="btn btn-primary" id="btnMergeTraining" type="button">Merge into dataset</button>
+          </div>
+          <label class="small"><input id="joinField" type="text" class="form-control" value="Employee ID" style="width:160px"> Join field</label>
+          <label class="small"><input id="dedupe" type="checkbox" checked> Deduplicate</label>
+        </div>
+        <div class="grid2">
+          <div>
+            <div class="small"><span class="badge">Training preview</span></div>
+            <pre id="trainingPreview">No file loaded.</pre>
+          </div>
+          <div>
+            <div class="small"><span class="badge">Dataset (first 30 rows)</span></div>
+            <pre id="preview"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btnExportJSON">Export dataset JSON</button>
+<!-- Export Training button (added) -->
+<button id="btnExportTraining" type="button" class="btn btn-outline-primary ms-2" title="Export training.json">
+  Export Training
+</button>
+
+      <button class="btn" id="btnExportCSV">Export dataset CSV</button>
+      <span id="status" class="small"></span>
+    </div>
+
+    <script id="embedded-data" type="application/json">[]</script>
+
+    <script>
+// ---- Keys & sync ----
+const STORE_KEY='ES_DATASET_V4';
+const STORE_STATIONS='ES_STATIONS_V4';
+let ES_CH=null; try{ ES_CH = new BroadcastChannel('es-sync-v4'); }catch(e){ ES_CH=null; }
+function readJSON(k,f){ try{ const t=localStorage.getItem(k); return t?JSON.parse(t):f; }catch(e){ return f; } }
+function writeJSON(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} if(ES_CH){ try{ ES_CH.postMessage({type:k, value:v}); }catch(e){} } }
+function currentDataset(){ let ds=readJSON(STORE_KEY,null); if(!Array.isArray(ds)||!ds.length){ try{ ds=JSON.parse(document.getElementById('embedded-data').textContent)||[]; }catch(e){ ds=[]; } writeJSON(STORE_KEY, ds); } return ds; }
+function setDataset(arr){ writeJSON(STORE_KEY, Array.isArray(arr)?arr:[]); }
+function clearStations(){ writeJSON(STORE_STATIONS, {}); }
+
+// ---- CSV helper ----
+function parseCSV(text){
+  const lines = String(text||'').replace(/\uFEFF/g,'').split(/\r?\n/).filter(x=>x.trim().length>0);
+  if(!lines.length) return [];
+  const hdr = lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(row=>{ const cells = row.split(','); const obj={}; for(let i=0;i<hdr.length;i++){ obj[hdr[i]] = (cells[i]||'').trim(); } return obj; });
+}
+
+// ---- Preview dataset ----
+function refreshPreview(){ const ds=currentDataset().slice(0,30); document.getElementById('preview').textContent = JSON.stringify(ds,null,2); }
+
+// ---- Training file -> map(EmployeeID => Array<Training>) ----
+function toTrainingMap(rows, idKey, trainKey){
+  const idCol = idKey || 'Employee ID';
+  const trCol = trainKey || 'Training';
+  const map = {};
+  (rows||[]).forEach(r=>{
+    const id = String(r[idCol]||'').trim();
+    const t  = String(r[trCol]||'').trim();
+    if(!id || !t) return;
+    const arr = map[id] || (map[id] = []);
+    if(arr.indexOf(t)===-1) arr.push(t);
+  });
+  // sort for stability
+  Object.keys(map).forEach(k=> map[k].sort((a,b)=> a.localeCompare(b)) );
+  return map;
+}
+
+function mergeTrainingIntoDataset(ds, tmap, joinKey, dedupe){
+  const key = joinKey || 'Employee ID';
+  const seenIDs = new Set(Object.keys(tmap));
+  let updated=0;
+  for(let i=0;i<ds.length;i++){
+    const id = String(ds[i].employee_id || ds[i][key] || '').trim();
+    if(!id) continue;
+    if(!seenIDs.has(id)) continue;
+    const list = tmap[id] || [];
+    if(!Array.isArray(ds[i].training_list)) ds[i].training_list = [];
+    let merged = ds[i].training_list.concat(list);
+    if(dedupe){ merged = Array.from(new Set(merged)); }
+    merged.sort((a,b)=> a.localeCompare(b));
+    ds[i].training_list = merged; // write back only this line
+    updated++;
+  }
+  return {ds, updated};
+}
+
+// ---- Wiring ----
+function fileToRows(file){ return new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onerror=()=>reject(reader.error); reader.onload=()=>{ const text=String(reader.result||''); if(/\.json$/i.test(file.name)){ try{ const arr=JSON.parse(text); return resolve(Array.isArray(arr)?arr:[]);}catch(e){ return reject(e);} } else { return resolve(parseCSV(text)); } }; reader.readAsText(file); }); }
+
+// dataset Replace / Append (existing behavior preserved)
+document.getElementById('btnReplace').addEventListener('click', async ()=>{
+  const inp=document.getElementById('fileReplace'); const f=inp.files && inp.files[0]; if(!f) return alert('Choose a file');
+  try{
+    const rows=await fileToRows(f);
+    const ds=Array.isArray(rows)?rows:[];
+    setDataset(ds);
+    document.getElementById('status').textContent = 'Dataset replaced: '+ds.length+' rows';
+    refreshPreview();
+  }catch(e){ alert('Failed to load file: '+e.message); }
+});
+
+document.getElementById('btnAppend').addEventListener('click', async ()=>{
+  const inp=document.getElementById('fileAppend'); const f=inp.files && inp.files[0]; if(!f) return alert('Choose a file');
+  try{
+    const rows=await fileToRows(f);
+    const base=currentDataset();
+    // unique by uid if present; else by user_id; else push
+    const map={}; base.forEach(r=>{ const k=String(r.uid||r.user_id||Math.random()).toLowerCase(); map[k]=r; });
+    rows.forEach(r=>{ const k=String(r.uid||r.user_id||Math.random()).toLowerCase(); map[k]=Object.assign({}, map[k]||{}, r); });
+    const merged=Object.values(map);
+    setDataset(merged);
+    document.getElementById('status').textContent = 'Appended. New size: '+merged.length;
+    refreshPreview();
+  }catch(e){ alert('Failed to append: '+e.message); }
+});
+
+// Reset / clear
+ document.getElementById('btnResetAll').addEventListener('click', ()=>{
+   try{ const em=JSON.parse(document.getElementById('embedded-data').textContent||'[]')||[]; setDataset(em); clearStations(); document.getElementById('status').textContent='Reset to embedded.'; refreshPreview(); }catch(e){ alert('No embedded data'); }
+ });
+ document.getElementById('btnClearDataset').addEventListener('click', ()=>{ setDataset([]); document.getElementById('status').textContent='Dataset cleared.'; refreshPreview(); });
+ document.getElementById('btnClearStations').addEventListener('click', ()=>{ clearStations(); document.getElementById('status').textContent='Stations cleared.'; });
+
+// Training: preview & merge
+let _trainingRows=[];
+document.getElementById('btnPreviewTraining').addEventListener('click', async ()=>{
+  const f=(document.getElementById('fileTraining').files||[])[0]; if(!f) return alert('Choose a training file');
+  try{
+    _trainingRows = await fileToRows(f);
+    const key = document.getElementById('joinField').value.trim()||'Employee ID';
+    const tmap = toTrainingMap(_trainingRows, key, 'Training');
+    const sample = Object.keys(tmap).slice(0,10).reduce((acc,k)=>{ acc[k]=tmap[k]; return acc; },{});
+    document.getElementById('trainingPreview').textContent = JSON.stringify({rows:_trainingRows.length, sample}, null, 2);
+  }catch(e){ alert('Failed to read training file: '+e.message); }
+});
+
+document.getElementById('btnMergeTraining').addEventListener('click', ()=>{
+  if(!_trainingRows.length) return alert('Load a training file first (Preview).');
+  const key = document.getElementById('joinField').value.trim()||'Employee ID';
+  const dedupe = document.getElementById('dedupe').checked;
+  const tmap = toTrainingMap(_trainingRows, key, 'Training');
+  const ds = currentDataset();
+  const res = mergeTrainingIntoDataset(ds, tmap, key, dedupe);
+  setDataset(res.ds);
+  document.getElementById('status').textContent = 'Merged training into '+res.updated+' matching rows.';
+  refreshPreview();
+});
+
+// Export helpers
+function download(name, text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 5000); }
+function toCSV(arr){ if(!Array.isArray(arr)||!arr.length) return ''; const keys=Array.from(new Set(arr.flatMap(o=>Object.keys(o)))); const esc=s=>('"'+String(s).replace(/"/g,'""')+'"'); const head=keys.join(','); const rows=arr.map(o=> keys.map(k=> esc(o[k]!==undefined?o[k]:"" )).join(',')); return [head].concat(rows).join('\n'); }
+
+document.getElementById('btnExportJSON').addEventListener('click', ()=>{ download('dataset.json', JSON.stringify(currentDataset(), null, 2)); });
+document.getElementById('btnExportCSV').addEventListener('click', ()=>{ download('dataset.csv', toCSV(currentDataset())); });
+
+// Init
+refreshPreview();
+    </script>
+  </div>
+
+<!-- Remote Export Bar (non-invasive) -->
+<div id="remoteExportBar" style="position:fixed;bottom:14px;right:14px;z-index:9999;background:#111827;color:#fff;border-radius:10px;padding:8px 10px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25);font-family:system-ui,Segoe UI,Roboto,Arial">
+  <span style="font-size:.85rem;opacity:.85">Export for GitHub /data/</span>
+  <button onclick="ES_REMOTE.exportDataset()"  style="cursor:pointer;border:0;background:#2563eb;color:#fff;border-radius:8px;padding:6px 10px">dataset.json</button>
+  <button onclick="ES_REMOTE.exportStations()" style="cursor:pointer;border:0;background:#16a34a;color:#fff;border-radius:8px;padding:6px 10px">stations.json</button>
+  <button onclick="ES_REMOTE.exportHolder()"   style="cursor:pointer;border:0;background:#6b7280;color:#fff;border-radius:8px;padding:6px 10px">holder_cache.json</button>
+  <button onclick="ES_REMOTE.exportZipAll()"   style="cursor:pointer;border:0;background:#7c3aed;color:#fff;border-radius:8px;padding:6px 10px">ZIP</button>
+  <button onclick="this.parentNode.remove()"   style="cursor:pointer;border:0;background:#ef4444;color:#fff;border-radius:8px;padding:6px 10px">×</button>
+</div>
+<script>/* ensure remote refresh button for DataManager */ (window.ES_REMOTE?.refreshFromRemote?.());</script>
+
+
+<!-- Minimal Merge/Join Fix (no visual changes) -->
+<script>
+(function(){
+  // --- Safe utilities (do not change existing UI) ---
+  function readLS(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)||""); }catch(e){ return fallback; } }
+  function writeLS(key, obj){
+    try{ localStorage.setItem(key, JSON.stringify(obj)); }catch(e){}
+    try{ const bc=new BroadcastChannel('es-sync-v4'); bc.postMessage({type:key, value:obj}); }catch(e){}
+  }
+  function getDataset(){ const ds = readLS('ES_DATASET_V4', []); return Array.isArray(ds) ? ds : []; }
+  function setDataset(arr){ writeLS('ES_DATASET_V4', Array.isArray(arr) ? arr : []); }
+
+  // Lightweight CSV parser (handles quotes)
+  function parseCSV(text){
+    text = String(text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+    const rows=[]; let i=0, field="", row=[], inQ=false;
+    function pushField(){ row.push(field); field=""; }
+    function pushRow(){ rows.push(row); row=[]; }
+    while(i<text.length){
+      const ch=text[i];
+      if(inQ){
+        if(ch === '"'){
+          if(text[i+1] === '"'){ field+='"'; i++; } else { inQ=false; }
+        } else { field += ch; }
+      } else {
+        if(ch === '"') inQ = true;
+        else if(ch === ",") pushField();
+        else if(ch === "\n"){ pushField(); pushRow(); }
+        else field += ch;
+      }
+      i++;
+    }
+    if(field.length || row.length){ pushField(); pushRow(); }
+    if(!rows.length) return [];
+    const headers = rows.shift().map(h => h.trim());
+    return rows.filter(r => r.some(c => c && String(c).trim())).map(r => {
+      const o = {}; headers.forEach((h,idx)=> o[h] = (r[idx] ?? "").trim()); return o;
+    });
+  }
+
+  function isCSVFile(f){ return !!f && /\.csv$/i.test(f.name||""); }
+  function isJSONFile(f){ return !!f && /\.json$/i.test(f.name||""); }
+  function readFileAsText(file){
+    return new Promise((res, rej)=>{ const r=new FileReader(); r.onerror=()=>rej(r.error); r.onload=()=>res(String(r.result||"")); r.readAsText(file); });
+  }
+  function pickKey(obj, candidates){
+    if(!obj) return null;
+    for(const k of candidates){
+      if(k in obj) return k;
+      const found = Object.keys(obj).find(h => h.toLowerCase() === k.toLowerCase());
+      if(found) return found;
+    }
+    return null;
+  }
+
+  // Build training map: id -> [training,...]
+  function toTrainingMap(rows){
+    if(!Array.isArray(rows) || !rows.length) return {map:{}, idKey:null, trKey:null};
+    const first = rows[0];
+    const idKey = pickKey(first, ["EmployeeID","Employee ID","employee_id","emp_id","ID","id","uid","Uid","User ID","user_id"]);
+    const trKey = pickKey(first, ["Training","training","training_name","Course","course","Tag","tag"]);
+    const map = {};
+    for(const r of rows){
+      const id = String((idKey && r[idKey]) ?? "").trim();
+      const t  = String((trKey && r[trKey]) ?? "").trim();
+      if(!id || !t) continue;
+      (map[id] ||= []).push(t);
+    }
+    for(const k in map){ map[k] = Array.from(new Set(map[k])).sort((a,b)=>a.localeCompare(b)); }
+    return {map, idKey, trKey};
+  }
+
+  function mergeTraining(ds, tmap, dedupe){
+    let updated=0;
+    for(const row of ds){
+      // Accept common id fields in dataset as well
+      const id = String(row.EmployeeID ?? row["Employee ID"] ?? row.employee_id ?? row.emp_id ?? row.ID ?? row.id ?? row.uid ?? row["User ID"] ?? "").trim();
+      if(!id) continue;
+      const add = tmap[id];
+      if(!add || !add.length) continue;
+      if(!Array.isArray(row.training_list)) row.training_list = [];
+      let merged = row.training_list.concat(add);
+      if(dedupe !== false) merged = Array.from(new Set(merged));
+      row.training_list = merged.sort((a,b)=> a.localeCompare(b));
+      updated++;
+    }
+    return updated;
+  }
+
+  // --- Non-invasive wiring: reuse existing buttons if present ---
+  const btnPrev  = document.getElementById("btnPreviewTraining");
+  const btnMerge = document.getElementById("btnMergeTraining");
+  const inpTrain = document.getElementById("fileTraining");
+  const dedupeBox = document.getElementById("dedupe");
+  const previewEl = document.getElementById("previewTR") || document.getElementById("trainingPreview") || document.getElementById("preview");
+
+  let _trainRows = [];
+
+  async function loadTrainingFromInput(){
+    const f = (inpTrain && inpTrain.files && inpTrain.files[0]) ? inpTrain.files[0] : null;
+    if(!f) throw new Error("Choose a training file (CSV/JSON).");
+    const text = await readFileAsText(f);
+    let rows;
+    try{
+      rows = isCSVFile(f) ? parseCSV(text) : JSON.parse(text);
+    }catch(e){
+      throw new Error("Unable to parse training file: " + e.message);
+    }
+    if(!Array.isArray(rows) || !rows.length) throw new Error("Training file must contain rows.");
+    return rows;
+  }
+
+  if(btnPrev && inpTrain){
+    btnPrev.addEventListener("click", async (ev)=>{
+      try{
+        _trainRows = await loadTrainingFromInput();
+        const {map, idKey, trKey} = toTrainingMap(_trainRows);
+        const sample = Object.keys(map).slice(0,10).reduce((acc,k)=>{ acc[k]=map[k]; return acc; },{});
+        if(previewEl) previewEl.textContent = JSON.stringify({rows:_trainRows.length, idKey, trKey, sample}, null, 2);
+        // Do not show any extra UI; keep page as-is.
+      }catch(err){ alert(err.message); }
+    }, {capture:true});
+  }
+
+  if(btnMerge){
+    btnMerge.addEventListener("click", async (ev)=>{
+      try{
+        // If user didn't click Preview, parse the selected file now (so we don't block with "Load a training file first").
+        if(!_trainRows.length){
+          if(inpTrain && inpTrain.files && inpTrain.files[0]){
+            _trainRows = await loadTrainingFromInput();
+          } else {
+            throw new Error("Choose a training file (CSV/JSON).");
+          }
+        }
+        const {map} = toTrainingMap(_trainRows);
+        const ds = getDataset();
+        const updated = mergeTraining(ds, map, dedupeBox ? !!dedupeBox.checked : true);
+        setDataset(ds);
+        // Keep existing status flow; minimal user feedback:
+        alert("Merged training into " + updated + " matching rows. Now export dataset.json and upload to /data/.");
+      }catch(err){ alert(err.message); }
+    }, {capture:true});
+  }
+})();
+</script>
+
+<!-- Minimal ES_REMOTE local-export shim (no UI changes) -->
+<script>
+(function(){
+  if (window.ES_REMOTE) return; // don't override if already defined
+  const FILES = { dataset:"dataset.json", stations:"stations.json", holder:"holder_cache.json" };
+  const KEYS  = { DATASET:"ES_DATASET_V4", STATIONS:"ES_STATIONS_V4", HOLDER:"ES_HOLDER_CACHE_V1" };
+
+  function readLS(key, fallback){
+    try { return JSON.parse(localStorage.getItem(key) || ""); } catch(e){ return fallback; }
+  }
+  function downloadBlob(filename, dataObj){
+    const blob = new Blob([JSON.stringify(dataObj, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  }
+
+  async function exportZipAll(){
+    const files = {
+      [FILES.dataset]:  readLS(KEYS.DATASET, []),
+      [FILES.stations]: readLS(KEYS.STATIONS, {}),
+      [FILES.holder]:   readLS(KEYS.HOLDER, {}),
+    };
+    if (window.JSZip) {
+      const zip = new JSZip();
+      Object.entries(files).forEach(([name, obj]) => zip.file(name, JSON.stringify(obj, null, 2)));
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "data-pack.zip";
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+    } else {
+      // Fallback: download files individually
+      downloadBlob(FILES.dataset,  files[FILES.dataset]);
+      downloadBlob(FILES.stations, files[FILES.stations]);
+      downloadBlob(FILES.holder,   files[FILES.holder]);
+    }
+  }
+
+  // Expose the minimal API expected by your overlay buttons
+  window.ES_REMOTE = {
+    FILES, KEYS,
+    refreshFromRemote: async () => ({ ok: true }), // no-op to keep same flow
+    exportDataset:  () => downloadBlob(FILES.dataset,  readLS(KEYS.DATASET, [])),
+    exportStations: () => downloadBlob(FILES.stations, readLS(KEYS.STATIONS, {})),
+    exportHolder:   () => downloadBlob(FILES.holder,   readLS(KEYS.HOLDER, {})),
+    exportZipAll
+  };
+})();
+</script>
+
+<!-- Minimal "Refresh from GitHub" button (no other changes) -->
+<script>
+(function(){
+  function addRefreshBtn(){
+    const host = document.querySelector('.controls');
+    if(!host || document.getElementById('btnRefreshSource')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnRefreshSource';
+    btn.type = 'button';
+    btn.className = 'btn';
+    btn.textContent = 'Refresh from GitHub';
+    host.insertBefore(btn, host.firstChild);
+    btn.addEventListener('click', refreshFromGitHub);
+  }
+
+  const DATA_BASE = "https://msoft83.github.io/opsportal/data/";
+  const FILES = { dataset:"dataset.json", stations:"stations.json", holder:"holder_cache.json" };
+  const KEYS  = { DATASET:"ES_DATASET_V4", STATIONS:"ES_STATIONS_V4", HOLDER:"ES_HOLDER_CACHE_V1" };
+
+  async function getJSON(url){
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { "Pragma":"no-cache", "Cache-Control":"no-cache" }
+    });
+    if(!res.ok) throw new Error("Fetch failed: " + url + " — " + res.status);
+    return res.json();
+  }
+
+  function writeLS(key, obj){
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch(e){}
+    try { const bc = new BroadcastChannel('es-sync-v4'); bc.postMessage({ type:key, value:obj }); } catch(e){}
+  }
+
+  async function refreshFromGitHub(){
+    try{
+      const [ds, st, hc] = await Promise.all([
+        getJSON(DATA_BASE + FILES.dataset).catch(()=>[]),
+        getJSON(DATA_BASE + FILES.stations).catch(()=>({})),
+        getJSON(DATA_BASE + FILES.holder).catch(()=>({})),
+      ]);
+      writeLS(KEYS.DATASET, Array.isArray(ds)?ds:[]);
+      writeLS(KEYS.STATIONS, st && typeof st==="object" ? st : {});
+      writeLS(KEYS.HOLDER,   hc && typeof hc==="object" ? hc : {});
+
+      try{
+        if (typeof refreshPreview === "function") refreshPreview();
+        const el = document.getElementById('previewDS') || document.getElementById('preview');
+        if (el) { el.textContent = JSON.stringify((Array.isArray(ds)?ds:[]).slice(0,40), null, 2); }
+      }catch{}
+
+      try{ window.dispatchEvent(new CustomEvent('es-remote-refreshed', { detail:{ ds_len:(ds||[]).length } })); }catch{}
+      alert("Refreshed from GitHub /data/ successfully.");
+    }catch(e){
+      alert("Refresh error: " + e.message);
+    }
+  }
+
+  try { if (window.ES_REMOTE) window.ES_REMOTE.refreshFromRemote = refreshFromGitHub; } catch {}
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addRefreshBtn);
+  else addRefreshBtn();
+})();
+</script>
+
+<script>
+(function(){
+  function saveAsFile(filename, dataObj){
+    try{
+      const blob = new Blob([JSON.stringify(dataObj, null, 2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }catch(e){ console.error("saveAsFile failed", e); alert("Download failed: " + e.message); }
+  }
+  async function getDatasetSafe(){
+    try{ if(window.currentDataset){ const ds = await window.currentDataset(); return Array.isArray(ds)?ds:[]; } }
+    catch(e){ console.warn(e); }
+    return [];
+  }
+  function deriveTrainingFromDataset(ds){
+    const rows = [];
+    (ds||[]).forEach(p=>{
+      const trainings = Array.isArray(p.training_list) ? p.training_list : [];
+      const empId = p.employee_id || p["Employee ID"] || p.EmployeeID || p.uid || p.user_id || "";
+      trainings.forEach(t=>{
+        if(t!=null && String(t).trim()!==""){
+          rows.push({ "Employee ID": String(empId), "Training": String(t) });
+        }
+      });
+    });
+    return rows;
+  }
+  async function exportTraining(){
+    let rows = [];
+    if(Array.isArray(window.__CURRENT_TRAINING_ROWS__) && window.__CURRENT_TRAINING_ROWS__.length){
+      rows = window.__CURRENT_TRAINING_ROWS__;
+    }else{
+      const ds = await getDatasetSafe();
+      rows = deriveTrainingFromDataset(ds);
+    }
+    if(!rows.length){ alert("No training data found to export."); return; }
+    try{
+      if(window.ESRemote && ESRemote.config && ESRemote.config.token){
+        await ESRemote.setTraining(rows);
+        alert("training.json has been updated in the GitHub repo.");
+      }else{
+        saveAsFile("training.json", rows);
+      }
+    }catch(e){
+      console.error(e);
+      saveAsFile("training.json", rows);
+      alert("Remote write failed; downloaded training.json for manual upload.");
+    }
+  }
+  function bind(){ const btn = document.getElementById("btnExportTraining"); if(btn) btn.addEventListener("click", exportTraining); }
+  if(document.readyState==="complete"||document.readyState==="interactive"){ bind(); } else { document.addEventListener("DOMContentLoaded", bind); }
+})();
+</script>
+
+
+<script>
+(function(){
+  // Reuse existing exportTraining if available; otherwise define a minimal one
+  if (typeof window.exportTraining !== "function") {
+    window.exportTraining = (async function(){
+      async function getDatasetSafe(){
+        try{ if(window.currentDataset){ const ds = await window.currentDataset(); return Array.isArray(ds)?ds:[]; } }catch(e){}
+        return [];
+      }
+      function deriveTrainingFromDataset(ds){
+        const rows = [];
+        (ds||[]).forEach(p=>{
+          const trainings = Array.isArray(p.training_list) ? p.training_list : [];
+          const empId = p.employee_id || p["Employee ID"] || p.EmployeeID || p.uid || p.user_id || "";
+          trainings.forEach(t=>{
+            if(t!=null && String(t).trim()!==""){
+              rows.push({ "Employee ID": String(empId), "Training": String(t) });
+            }
+          });
+        });
+        return rows;
+      }
+      function saveAsFile(filename, dataObj){
+        const blob = new Blob([JSON.stringify(dataObj, null, 2)], {type:"application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      }
+      let rows = Array.isArray(window.__CURRENT_TRAINING_ROWS__) && window.__CURRENT_TRAINING_ROWS__.length
+        ? window.__CURRENT_TRAINING_ROWS__ : deriveTrainingFromDataset(await getDatasetSafe());
+      if(!rows.length){ alert("No training data found to export."); return; }
+      try{
+        if(window.ESRemote && ESRemote.config && ESRemote.config.token){
+          await ESRemote.setTraining(rows);
+          alert("training.json has been updated in the GitHub repo.");
+        }else{
+          saveAsFile("training.json", rows);
+        }
+      }catch(e){
+        console.error(e);
+        saveAsFile("training.json", rows);
+        alert("Remote write failed; downloaded training.json for manual upload.");
+      }
+    });
+  }
+
+  function addTrainingPill(){
+    // Find the export toolbar by locating the dataset.json pill
+    const candidates = Array.from(document.querySelectorAll("button,a,span"));
+    let datasetBtn = candidates.find(el => /dataset\.json/i.test(el.textContent||""));
+    if(!datasetBtn){
+      // Try another heuristic: look for stations.json then use its parent
+      datasetBtn = candidates.find(el => /stations\.json/i.test(el.textContent||""));
+    }
+    let container = datasetBtn ? (datasetBtn.parentElement || document.body) : document.body;
+
+    // Don't add twice
+    if(document.getElementById("btnExportTrainingPill")) return;
+
+    // Clone styling from dataset pill if possible
+    let btn = document.createElement(datasetBtn ? datasetBtn.tagName : "button");
+    btn.id = "btnExportTrainingPill";
+    btn.textContent = "training.json";
+
+    // Copy classes from dataset pill to keep same visual style
+    if(datasetBtn && datasetBtn.classList && datasetBtn.classList.length){
+      btn.className = datasetBtn.className;
+    }else{
+      // Reasonable default styles (Bootstrap-like)
+      btn.className = "btn btn-outline-primary ms-2";
+      btn.style.borderRadius = "9999px"; // pill
+    }
+
+    btn.addEventListener("click", function(ev){
+      ev.preventDefault();
+      if (typeof window.exportTraining === "function") {
+        window.exportTraining();
+      }
+    });
+
+    // Insert after the stations.json pill if present, else append after dataset.json
+    let stationsBtn = candidates.find(el => /stations\.json/i.test(el.textContent||""));
+    if(stationsBtn && stationsBtn.parentElement){
+      stationsBtn.parentElement.insertBefore(btn, stationsBtn.nextSibling);
+    }else if(datasetBtn && datasetBtn.parentElement){
+      datasetBtn.parentElement.insertBefore(btn, datasetBtn.nextSibling);
+    }else{
+      container.appendChild(btn);
+    }
+  }
+
+  if(document.readyState === "complete" || document.readyState === "interactive"){
+    setTimeout(addTrainingPill, 0);
+  }else{
+    document.addEventListener("DOMContentLoaded", addTrainingPill);
+  }
+})();
+</script>
+
+</body>
+</html>
+
+
+<!-- ========= StationSetup.html (PATCH: show training badge on cards) ========= -->
+<script>
+// Drop this near other helpers in StationSetup.html
+function trainingBadgeHTML(it){
+  const arr = Array.isArray(it.training_list)? it.training_list: [];
+  if(arr.length===0) return '';
+  const tip = arr.join(', ');
+  return '<span class="pill-liber" title="'+tip.replace(/"/g,'&quot;')+'">TR: '+arr.length+'</span>';
+}
+// When rendering employee chips/cards, append trainingBadgeHTML(it)
+// Example in existing code where you render an employee in a slot:
+// '<img ...><span>'+esc(it.first_name||'—')+'</span>' + (it.libershare?('<span class="pill-liber">'+esc(it.libershare)+'</span>'):'') + trainingBadgeHTML(it)
+</script>
+
+<!-- ========= StationDisplay.html (PATCH: show training badge in list items) ========= -->
+<script>
+// Add beside name in Display too
+function trBadge(item){ var a = Array.isArray(item.training_list)? item.training_list: []; if(!a.length) return ''; var tip=a.join(', '); return '<span class="pill-liber" title="'+tip.replace(/"/g,'&quot;')+'">TR: '+a.length+'</span>'; }
+// In StationDisplay render where each item is printed, append trBadge(x) after the name.
+</script>
+
+<!-- ========= AddLS.html (No change required) ========= -->
+<!-- LS additions remain compatible; new field `training_list` is optional and untouched when adding LS. -->

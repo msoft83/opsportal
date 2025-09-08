@@ -1,0 +1,9 @@
+window.__ES_REMOTE_CFG__ = {
+  owner: "msoft83",
+  repo: "opsportal",
+  branch: "main",
+  basePath: "data",
+  token: "",
+  forceHijack: true,
+  verbose: true
+};
