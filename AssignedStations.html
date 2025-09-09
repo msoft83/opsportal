@@ -785,5 +785,35 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
+
+<!-- ES remote re-render hook -->
+<script>
+(function(){
+  function wants(k){
+    try { return k===ES_REMOTE.KEYS.DATASET || k===ES_REMOTE.KEYS.STATIONS || k===ES_REMOTE.KEYS.HOLDER; } catch(e){ return false; }
+  }
+  function callRender(){
+    try {
+      if (typeof window.render === "function") return window.render();
+      if (typeof window.renderTable === "function") return window.renderTable();
+      if (typeof window.renderTrainingTable === "function") return window.renderTrainingTable();
+      if (typeof window.refreshTable === "function") return window.refreshTable();
+      if (typeof window.updateUI === "function") return window.updateUI();
+    } catch(e){}
+  }
+  const prev = window.onStoreUpdate;
+  window.onStoreUpdate = function(k,v){
+    if (typeof prev === "function") { try{ prev(k,v); }catch(e){} }
+    if (wants(k)) { callRender(); }
+  };
+  // First load: force remote pull so all tabs start from same snapshot
+  document.addEventListener("DOMContentLoaded", function(){
+    try { ES_REMOTE.refreshFromRemote(); } catch(e){}
+    // Sometimes pages seed local immediately; wipe their seed in favor of remote when it arrives
+    setTimeout(function(){ try { ES_REMOTE.refreshFromRemote(); } catch(e){} }, 1200);
+  });
+})();
+</script>
+
 </body>
 </html>
