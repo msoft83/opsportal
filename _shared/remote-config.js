@@ -1,7 +1,7 @@
 // === ES Remote Config (edit me) ===
 window.ES_REMOTE_CFG = {
   // Base URL for RAW reads (public, no token needed)
-  readBase: "https://raw.githubusercontent.com/msoft83/opsportal/main/data/",
+  readBase: "https://msoft83.github.io/opsportal/data/",
   // GitHub write settings (Contents API)
   repo: "msoft83/opsportal",   // "user/repo"
   branch: "main",
