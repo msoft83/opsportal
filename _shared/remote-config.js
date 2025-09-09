@@ -1,12 +1,12 @@
-<script>
 // === ES Remote Config (edit me) ===
 window.ES_REMOTE_CFG = {
-  // Use same-origin Pages data path for reliability:
+  // Base URL for RAW reads (public, no token needed)
   readBase: "https://msoft83.github.io/opsportal/data/",
-  // Contents API for writes (optional)
-  repo: "msoft83/opsportal",
+  // GitHub write settings (Contents API)
+  repo: "msoft83/opsportal",   // "user/repo"
   branch: "main",
-  token: "", // set PAT with 'repo' to enable writes
+  // Set a GitHub token with 'repo' scope to enable writes. Leave empty for read-only.
+  token: "",
   author: { name: "OpsPortal Bot", email: "opsportal@example.com" },
   files: {
     dataset: "dataset.json",
@@ -16,4 +16,3 @@ window.ES_REMOTE_CFG = {
   },
   pollSeconds: 12
 };
-</script>
