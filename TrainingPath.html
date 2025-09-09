@@ -226,5 +226,31 @@
       });
     </script>
   </div>
+
+<!-- ES remote re-render hook -->
+<script>
+(function(){
+  const want = function(key){
+    try { return key===ES_REMOTE.KEYS.DATASET || key===ES_REMOTE.KEYS.STATIONS; } catch(e){ return false; }
+  };
+  const callRender = function(){
+    try {
+      if (typeof window.renderTrainingTable === "function") return window.renderTrainingTable();
+      if (typeof window.render === "function") return window.render();
+      if (typeof window.refreshTable === "function") return window.refreshTable();
+    } catch(e){}
+  };
+  const prev = window.onStoreUpdate;
+  window.onStoreUpdate = function(k,v){
+    if (typeof prev === "function") { try{ prev(k,v); }catch(e){} }
+    if (want(k)) { callRender(); }
+  };
+  // First load: force pull from remote so both browsers start on the same snapshot
+  document.addEventListener("DOMContentLoaded", function(){
+    try { ES_REMOTE.refreshFromRemote(); } catch(e){}
+  });
+})();
+</script>
+
 </body>
 </html>
